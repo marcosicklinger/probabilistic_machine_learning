@@ -1,0 +1,16 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Saved trajectories
+.npy
+
+# Images and gifs
+.jpg
+.jpeg
+.png
+.gif
+
+# OS generated files
+.DS_Store
+
