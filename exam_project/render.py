@@ -26,8 +26,8 @@ import os.path
 low_boundaries = [0, 0]
 high_boundaries = [100,100]
 
-N = 2
-lr_pars = {'a': 0.008, 'expa': 0.999, 'eps': 0.05, 'expe': 1.05, 'p_angle': 8}
+N = 1
+lr_pars = {'a': 0.001, 'expa': 0.999, 'eps': 0.01, 'expe': 1, 'p_angle': 8}
 
 
 # duration = np.load('/home/marco/active_object_tracking_modelling/constvel_trials/episodes/duration_doubleNoTDist_{}_{}.npy'.format(lr_pars, episode))
@@ -39,7 +39,7 @@ lr_pars = {'a': 0.008, 'expa': 0.999, 'eps': 0.05, 'expe': 1.05, 'p_angle': 8}
 
 
 episode = int(input('insert episode to study: '))
-saved_episodes_dict = np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/renderepisodes_doubleNoTDist_{}.npy'.format(lr_pars), allow_pickle=True).item()
+saved_episodes_dict = np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/renderepisodes_singleNoTDist_{}.npy'.format(lr_pars), allow_pickle=True).item()
 # print(list(saved_episodes_dict.keys()))
 episode_dict = saved_episodes_dict[episode]
 
@@ -76,10 +76,10 @@ def motion(t):
     for n in range(N):
         detection_zone = plt.Circle((X_trackers_coords[n][t], Y_trackers_coords[n][t]), radius=Tracker.DETECTION_RANGE, alpha=0.1, color='k')
         catching_zone = plt.Circle((X_trackers_coords[n][t], Y_trackers_coords[n][t]), radius=3, fill=False, linestyle='--', color='k')
-        interaction_zone = plt.Circle((X_trackers_coords[n][t], Y_trackers_coords[n][t]), radius=Tracker.INTERACTION_RANGE, alpha=0.1, color='k')
+        # interaction_zone = plt.Circle((X_trackers_coords[n][t], Y_trackers_coords[n][t]), radius=Tracker.INTERACTION_RANGE, alpha=0.1, color='k')
         ax.add_artist(detection_zone)
         ax.add_artist(catching_zone)
-        ax.add_artist(interaction_zone)
+        # ax.add_artist(interaction_zone)
         tracker_path_x = X_trackers_coords[n][:t+1]
         tracker_trail_x = tracker_path_x[-10:]
         tracker_path_y = Y_trackers_coords[n][:t+1]
@@ -113,7 +113,7 @@ fig, ax = plt.subplots(figsize=(20,20))
 plt.gca().set_aspect("equal", adjustable="box")
 line_ani = animation.FuncAnimation( fig, motion, interval=10, frames=int(duration), repeat=False )
 
-f = '/home/marco/active_object_tracking_modelling/constvel_trials/gifs/episode_{}.gif'.format(episode)
+f = '/home/marco/probabilistic_machine_learning/exam_project/trials/gifs/episode_{}.gif'.format(episode)
 writergif = animation.PillowWriter(fps=4)
 line_ani.save(f, writer=writergif)
 

@@ -49,7 +49,7 @@ class Environment:
 
         self.target = DummyTarget() 
 
-        self.catching_distance = 1
+        self.catching_distance = 3
 
         self.x_binning = math.ceil( np.abs(self.low_boundaries[0]-self.high_boundaries[0]) / (self.catching_distance) )
         self.y_binning = math.ceil( np.abs(self.low_boundaries[1]-self.high_boundaries[1]) / (self.catching_distance) )
@@ -71,11 +71,11 @@ class Environment:
         #                         self.target_distance_binning+1, self.orientation_binning)
         self.tracker_action_space_size = len(Tracker.ACTIONS)
         self.state_space_size = (
-                                self.position_binning[0]+1,
-                                self.position_binning[1]+1,
+                                # self.position_binning[0]+1,
+                                # self.position_binning[1]+1,
                                 # self.neighbor_position_binning[0]+1,
                                 # self.neighbor_position_binning[1]+1,
-                                # self.orientation_binning,  
+                                self.orientation_binning,  
                                 # self.boundary_binning,
                                 # self.neighbor_distance_binning+1, 
                                 # self.neighbor_bearing_binning, 
@@ -342,9 +342,9 @@ class Environment:
         nearest_boundary = self.__aggregateBoundary__(self.trackers_true_positions[n])
 
         observation = np.array( [
-                                observed_position[0],
-                                observed_position[1],
-                                # observed_orientation, 
+                                # observed_position[0],
+                                # observed_position[1],
+                                observed_orientation, 
                                 # nearest_boundary,
                                 # observed_nearest_neighbor_distance, 
                                 # observed_nearest_neighbor_bearing, 
@@ -416,7 +416,6 @@ class Environment:
         target_low_y = target_starting_zone_y*zone_yamplitude
         target_high_y = (target_starting_zone_y+1)*zone_yamplitude
         self.target_position = self.__initializeAgentsPosition__(self.n_targets, [target_low_x, target_low_y], [target_high_x, target_high_y])[0]
-        self.target.speed = self.current.generateCurrent()
 
         trackers_starting_zone_x = (n_zones-1) - target_starting_zone_x
         trackers_starting_zone_y = (n_zones-1) - target_starting_zone_y

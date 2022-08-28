@@ -25,7 +25,7 @@ import os.path
 
 # episode = input("Enter episode: ")
 episode_1 = 99999
-episode_2 = 49999
+episode_2 = 19999
 n_trials = 7
 n_agents = 2
 

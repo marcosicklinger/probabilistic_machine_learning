@@ -34,7 +34,7 @@ class Tracker:
     # SWARMAGENT PROPERTIES
     # ------------------
     SPEED = 3
-    DETECTION_RANGE = 10
+    DETECTION_RANGE = 30
     DETECTION_PROBABILITY = lambda distance: 1 if distance < Tracker.DETECTION_RANGE else 0 # lambda distance: np.exp( - 0.1 * (distance / Tracker.DETECTION_RANGE)**2 ) if distance < Tracker.DETECTION_RANGE else 0
     INTERACTION_RANGE = 60
     # ------------------
