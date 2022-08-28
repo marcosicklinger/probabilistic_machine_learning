@@ -2,16 +2,21 @@ from Agents import *
 from Environments import *
 from Utils import *
 
-n_trackers = 2
+n_trackers = 1
 low = [0, 0]
 high = [100, 100]
-lr_pars = {'gamma': 1., 'alpha_0': .0075, 'alpha': .0075, 'alpha_min': 1e-7, 'exp_alpha': .9, 'eps_0': .1, 'eps': .1, 'eps_min': 0.001, 'exp_eps': .9, 'start_update': 2e7}
-hyper_pars = {'time_importance': 1, 'max_time': 400}
+lr_pars = {'gamma': .99, 'alpha_0': .001, 'alpha': .001, 'alpha_min': 1e-7, 'exp_alpha': 0.999, 'eps_0': .01, 'eps': .01, 'eps_min': 1e-6, 'exp_eps': 1, 'start_update': 1e6, 'cut': 1e50}
+hyper_pars = {'time_importance': 1, 'max_time': 800}
 current = RandomCurrentVelocity(-3, 3)
 
 environment = Environment(n_trackers, low, high, lr_pars, hyper_pars, current=current, memoryless_trackers=True)
 
-n_episodes = 200000
-environment.train(n_episodes, render=[199900, 199950, 199990, 199999], remember=False)
+print('STATE SPACE SETTING:')
+print('\t- No distance to target')
+print('\t- {} angles state aggregation'.format(2*environment.orientation_slices))
+print('----------------------------------------------------------')
+
+n_episodes = 20000
+environment.train(n_episodes, render=[16000, 17000, 18000, 19000, 19999], remember=False)
 
 

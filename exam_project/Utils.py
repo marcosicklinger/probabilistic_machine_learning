@@ -18,6 +18,38 @@ def rotationMatrix(angle):
 
 
 
+def distanceFromNearestBoundaries(position, low, high):
+
+    x_smaller_distance = np.min([np.abs(position[0] - low[0]), np.abs(position[0] - high[0])])
+    y_smaller_distance = np.min([np.abs(position[1] - low[1]), np.abs(position[1] - high[1])])
+    distances = np.array([x_smaller_distance, y_smaller_distance])
+
+    return distances
+    
+
+
+class FeatureEmbedding:
+
+    def __init__(self):
+
+    #     self.observation = None
+        pass
+
+    # def updateObservation(self, observation):
+
+    #     self.observation = observation
+
+
+
+    def __call__(self, t):
+
+        mean_feature_embedding = T.math.reduce_mean(t, axis=0)
+        # if self.observation is not None:
+        #     return T.concat( [mean_feature_embedding, self.observation], axis=0 )
+        return T.stack([mean_feature_embedding])
+
+
+
 class DiscreteActionSpace:
 
     def __init__(self, n):
