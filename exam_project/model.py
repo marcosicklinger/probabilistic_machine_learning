@@ -5,7 +5,7 @@ from Utils import *
 n_trackers = 1
 low = [0, 0]
 high = [100, 100]
-lr_pars = {'gamma': .99, 'alpha_0': .001, 'alpha': .001, 'alpha_min': 1e-7, 'exp_alpha': 0.9999, 'eps_0': .01, 'eps': .01, 'eps_min': 1e-6, 'exp_eps': 1.05, 'start_update': 1e6, 'cut': 1e50}
+lr_pars = {'gamma': .99, 'alpha_0': .02, 'alpha': .02, 'alpha_min': 1e-7, 'exp_alpha': 0.9999, 'eps_0': .03, 'eps': .03, 'eps_min': 1e-6, 'exp_eps': 1.05, 'start_update': 1e6, 'cut': 1e50}
 hyper_pars = {'time_importance': 1, 'max_time': 800}
 current = RandomCurrentVelocity(-3, 3)
 

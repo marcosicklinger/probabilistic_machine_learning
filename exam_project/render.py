@@ -70,8 +70,8 @@ def motion(t):
 
     ax.clear()
 
-    ax.set_xlim([low_boundaries[0], high_boundaries[0]])
-    ax.set_ylim([low_boundaries[1], high_boundaries[1]])
+    ax.set_xlim([low_boundaries[0]-5, high_boundaries[0]+5])
+    ax.set_ylim([low_boundaries[1]-5, high_boundaries[1]+5])
 
     for n in range(N):
         detection_zone = plt.Circle((X_trackers_coords[n][t], Y_trackers_coords[n][t]), radius=Tracker.DETECTION_RANGE, alpha=0.1, color='k')

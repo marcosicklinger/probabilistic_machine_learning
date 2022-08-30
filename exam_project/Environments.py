@@ -71,8 +71,8 @@ class Environment:
         #                         self.target_distance_binning+1, self.orientation_binning)
         self.tracker_action_space_size = len(Tracker.ACTIONS)
         self.state_space_size = (
-                                # self.position_binning[0]+1,
-                                # self.position_binning[1]+1,
+                                self.position_binning[0]+1,
+                                self.position_binning[1]+1,
                                 # self.neighbor_position_binning[0]+1,
                                 # self.neighbor_position_binning[1]+1,
                                 self.orientation_binning,  
@@ -85,6 +85,19 @@ class Environment:
         )
 
         self.trackers_starting_area = (self.xside/4, self.yside/4) 
+
+        zones = [0,1,2,3]
+        n_zones = len(zones)
+        zone_xamplitude = self.xside/n_zones
+        zone_yamplitude = self.yside/n_zones
+    
+        target_starting_zone_x = np.random.choice(zones, 1, p=[1/n_zones]*n_zones)[0]
+        target_starting_zone_y = np.random.choice(zones, 1, p=[1/n_zones]*n_zones)[0]
+        target_low_x = target_starting_zone_x*zone_xamplitude
+        target_high_x = (target_starting_zone_x+1)*zone_xamplitude
+        target_low_y = target_starting_zone_y*zone_yamplitude
+        target_high_y = (target_starting_zone_y+1)*zone_yamplitude
+        self.target_position = self.__initializeAgentsPosition__(self.n_targets, [target_low_x, target_low_y], [target_high_x, target_high_y])[0]
 
         self.memoryless_trackers = memoryless_trackers
         self.trackers_network = dict()
@@ -342,8 +355,8 @@ class Environment:
         nearest_boundary = self.__aggregateBoundary__(self.trackers_true_positions[n])
 
         observation = np.array( [
-                                # observed_position[0],
-                                # observed_position[1],
+                                observed_position[0],
+                                observed_position[1],
                                 observed_orientation, 
                                 # nearest_boundary,
                                 # observed_nearest_neighbor_distance, 
@@ -408,17 +421,9 @@ class Environment:
         n_zones = len(zones)
         zone_xamplitude = self.xside/n_zones
         zone_yamplitude = self.yside/n_zones
-    
-        target_starting_zone_x = np.random.choice(zones, 1, p=[1/n_zones]*n_zones)[0]
-        target_starting_zone_y = np.random.choice(zones, 1, p=[1/n_zones]*n_zones)[0]
-        target_low_x = target_starting_zone_x*zone_xamplitude
-        target_high_x = (target_starting_zone_x+1)*zone_xamplitude
-        target_low_y = target_starting_zone_y*zone_yamplitude
-        target_high_y = (target_starting_zone_y+1)*zone_yamplitude
-        self.target_position = self.__initializeAgentsPosition__(self.n_targets, [target_low_x, target_low_y], [target_high_x, target_high_y])[0]
 
-        trackers_starting_zone_x = (n_zones-1) - target_starting_zone_x
-        trackers_starting_zone_y = (n_zones-1) - target_starting_zone_y
+        trackers_starting_zone_x = np.random.choice(zones, 1, p=[1/n_zones]*n_zones)[0]
+        trackers_starting_zone_y = np.random.choice(zones, 1, p=[1/n_zones]*n_zones)[0]
         trackers_low_x = trackers_starting_zone_x*zone_xamplitude
         trackers_high_x = (trackers_starting_zone_x+1)*zone_xamplitude
         trackers_low_y = trackers_starting_zone_y*zone_yamplitude
@@ -516,23 +521,25 @@ class Environment:
 
             # SOFT ELASTIC BC: agent bounces back softly when it tries to go out of the search region ("softly referring to the fact that it doesnt bounce 
             # back exacly at the physical boundary of the search region but whenever it steps outside of it the velocity is multiplied by -1")
-            if self.low_boundaries[0] < new_position[0] < self.high_boundaries[0] and self.low_boundaries[1] < new_position[1] < self.high_boundaries[1]:
+            if self.low_boundaries[0] - 5 < new_position[0]  < self.high_boundaries[0] + 5 and self.low_boundaries[1] - 5 < new_position[1] < self.high_boundaries[1] + 5:
                 self.trackers_true_positions[i] = new_position
-            if new_position[0] < self.low_boundaries[0] or new_position[0] > self.high_boundaries[0]:
+            if new_position[0] < self.low_boundaries[0] - 5 or new_position[0] > self.high_boundaries[0] + 5:
                 self.trackers_true_velocities[i] = np.dot(rotationMatrix(-rotation_angle), self.trackers_true_velocities[i])
                 self.trackers_true_velocities[i][0] *= -1
                 # CORRECT ORIENTATION
                 if alg.norm( self.trackers_true_velocities[i] ) > 0:
-                    self.trackers_true_orientations[i] = np.arccos( self.trackers_true_velocities[i][0] / alg.norm( self.trackers_true_velocities[i], ord=2 ) ) if self.trackers_true_velocities[i][1] > 0 else\
-                                                   - np.arccos( self.trackers_true_velocities[i][0] / alg.norm( self.trackers_true_velocities[i], ord=2 ) )
+                    # self.trackers_true_orientations[i] = np.arccos( self.trackers_true_velocities[i][0] / alg.norm( self.trackers_true_velocities[i], ord=2 ) ) if self.trackers_true_velocities[i][1] > 0 else\
+                    #                                - np.arccos( self.trackers_true_velocities[i][0] / alg.norm( self.trackers_true_velocities[i], ord=2 ) )
+                    self.trackers_true_orientations[i] = np.arctan2(self.trackers_true_velocities[i][1], self.trackers_true_velocities[i][0])
                 new_position = self.trackers_true_positions[i] + self.trackers_true_velocities[i]
-            elif new_position[1] < self.low_boundaries[1] or new_position[1] > self.high_boundaries[1]:
+            elif new_position[1] < self.low_boundaries[1] - 5 or new_position[1] > self.high_boundaries[1] + 5:
                 self.trackers_true_velocities[i] = np.dot(rotationMatrix(-rotation_angle), self.trackers_true_velocities[i])
                 self.trackers_true_velocities[i][1] *= -1
                 # CORRECT ORIENTATION
                 if alg.norm( self.trackers_true_velocities[i] ) > 0:
-                    self.trackers_true_orientations[i] = np.arccos( self.trackers_true_velocities[i][0] / alg.norm( self.trackers_true_velocities[i], ord=2 ) ) if self.trackers_true_velocities[i][1] > 0 else\
-                                                   - np.arccos( self.trackers_true_velocities[i][0] / alg.norm( self.trackers_true_velocities[i], ord=2 ) )
+                    # self.trackers_true_orientations[i] = np.arccos( self.trackers_true_velocities[i][0] / alg.norm( self.trackers_true_velocities[i], ord=2 ) ) if self.trackers_true_velocities[i][1] > 0 else\
+                    #                                - np.arccos( self.trackers_true_velocities[i][0] / alg.norm( self.trackers_true_velocities[i], ord=2 ) )
+                    self.trackers_true_orientations[i] = np.arctan2(self.trackers_true_velocities[i][1], self.trackers_true_velocities[i][0])
                 new_position = self.trackers_true_positions[i] + self.trackers_true_velocities[i]
             self.trackers_true_positions[i] = new_position
 
@@ -688,7 +695,7 @@ class Environment:
 
 
             if episode % 1000 == 0:
-                print('ep = ', episode, ', step = ', step, ', t = ', time, 'successful episodes = ', succ_episodes, ', eps = ', [self.trackers_network[n].lr_pars['eps'] for n in self.trackers_network.keys()], ', alpha = ', [self.trackers_network[n].lr_pars['alpha'] for n in self.trackers_network.keys()])
+                print('ep = ', episode, ', step = ', step, ', t = ', time, 'ratio of successful episodes = ', succ_episodes/(episode+1), ', eps = ', [self.trackers_network[n].lr_pars['eps'] for n in self.trackers_network.keys()], ', alpha = ', [self.trackers_network[n].lr_pars['alpha'] for n in self.trackers_network.keys()])
 
             self.time_trajectories += [time]
             for i in self.trackers_network.keys(): 

@@ -25,15 +25,15 @@ import os.path
 
 # episode = input("Enter episode: ")
 episode_1 = 99999
-episode_2 = 19999
+episode_2 = 49999
 n_trials = 7
-n_agents = 2
+n_agents = 1
 
 time = []
 
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_single.npy'.format(episode_2), allow_pickle=True)]
 
-lr_pars_1 = {'a': 0.001, 'expa': 0.999, 'eps': 0.01, 'expe': 1, 'p_angle': 8}
+lr_pars_1 = {'a': 0.02, 'expa': 0.9999, 'eps': 0.03, 'expe': 1.05, 'p_angle': 8}
 time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(episode_2, lr_pars_1), allow_pickle=True)]
 # lr_pars_2 = {'a': 0.005, 'expa': 0.9, 'eps': 0.1, 'expe': 1.05, 'p_angle': 8}
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_double_{}.npy'.format(episode_2, lr_pars_2), allow_pickle=True)]
