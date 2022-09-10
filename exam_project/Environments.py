@@ -334,7 +334,7 @@ class Environment:
         # time_reward = self.hyper_pars['time_importance'] * time
         position_check = lambda n: self.low_boundaries[0] < self.trackers_true_positions[n][0] < self.high_boundaries[0] and self.low_boundaries[1] < self.trackers_true_positions[1] < self.high_boundaries[1] 
 
-        reward_dict = {n: -1 for n in self.trackers_network.keys()} # -1 if time < self.hyper_pars['max_time'] else -100
+        reward_dict = {n: 0 for n in self.trackers_network.keys()} # -1 if time < self.hyper_pars['max_time'] else -100
         # reward_dict = {n: 0 for n in self.trackers_network.keys()}
         # reward_dict = {n: -time/self.hyper_pars['max_time'] for n in self.trackers_network.keys()}
 

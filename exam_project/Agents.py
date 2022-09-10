@@ -8,6 +8,8 @@ from Utils import FeatureEmbedding, DiscreteActionSpace
 from collections import deque
 import random
 from copy import deepcopy
+import pyro.contrib.gp as gp 
+from sklearn.gaussian_process.kernels import RBF
 
 # ------
 # ------
@@ -89,7 +91,6 @@ class Tracker:
 
         self.lr_pars = deepcopy(lr_pars)
         self.Q = np.zeros((*self.state_space_size, self.actions.n_actions))
-
 
 
     def seesTarget(self, distance):
@@ -215,6 +216,9 @@ class GPTracker:
 
         self.lr_pars = deepcopy(lr_pars)
         self.Q = 0
+
+        self.gp_kernel = RBF(1.0)
+
 
 
 
