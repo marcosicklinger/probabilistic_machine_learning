@@ -81,7 +81,7 @@ class Environment:
                                 # self.neighbor_bearing_binning, 
                                 # self.orientation_binning,
                                 # self.target_distance_binning+1, 
-                                self.orientation_binning
+                                # self.orientation_binning
         )
 
         self.trackers_starting_area = (self.xside/4, self.yside/4) 
@@ -268,48 +268,6 @@ class Environment:
 
 
 
-    # def getTrackersObservation(self, n, noisy=[0, 0, 0, 0]):
-
-    #     observed_position = self.__aggregatePosition__(self.trackers_true_positions[n] + np.random.multivariate_normal((0, 0), [[noisy[0], 0], [0, noisy[0]]]))
-    #     if self.trackers_true_orientations[n] != None:
-    #         observed_orientation = self.__aggregateOrientation__(self.trackers_true_orientations[n] + np.random.normal(0, noisy[1]))
-    #     else:
-    #         observed_orientation = self.__aggregateOrientation__(self.trackers_true_orientations[n])
-    #     tracker_target_distance = self.__computeDistance__(self.target_position, self.trackers_true_positions[n]) + np.random.normal(0, noisy[2])
-    #     tracker_target_relative_position = self.target_position - self.trackers_true_positions[n]
-    #     observed_distance = self.__aggregateDistance__(tracker_target_distance)
-    #     bearing = None
-    #     if tracker_target_distance < Tracker.DETECTION_RANGE:
-    #         bearing = self.__computeBearing__(tracker_target_relative_position, self.trackers_true_velocities[n], self.trackers_true_orientations[n])
-    #     if bearing !=None:
-    #         bearing += np.random.normal(0, noisy[3])
-    #         observed_bearing = self.__aggregateOrientation__(bearing)
-    #     else:
-    #         observed_bearing = self.__aggregateOrientation__(bearing)
-
-    #     min_neighbor_dist = np.inf
-    #     nearest_neighbor = None
-    #     for m in set(self.trackers_network.keys()) - set([n]):
-    #         neighbor_distance = self.__computeDistance__(self.trackers_true_positions[n], self.trackers_true_positions[m]) + np.random.normal(0, noisy[2])
-    #         if neighbor_distance < min_neighbor_dist:
-    #             min_neighbor_dist = neighbor_distance
-    #             nearest_neighbor = m
-    #     observed_nearest_neighbor_distance = self.__aggregateDistance__(min_neighbor_dist)
-
-    #     nearest_neighbor_bearing = None
-    #     if min_neighbor_dist <= Tracker.DETECTION_RANGE:
-    #         nearest_neighbor_relative_position = self.trackers_true_positions[nearest_neighbor] - self.trackers_true_positions[n]
-    #         nearest_neighbor_bearing = self.__computeBearing__(nearest_neighbor_relative_position, self.trackers_true_velocities[n], self.trackers_true_orientations[n])
-    #     observed_nearest_neighbor_bearing = self.__aggregateOrientation__(nearest_neighbor_bearing)
-
-    #     observation = np.array( [observed_position[0], observed_position[1], observed_orientation, 
-    #                             observed_nearest_neighbor_distance, observed_nearest_neighbor_bearing, 
-    #                             observed_distance, observed_bearing] )
-
-    #     return observation
-
-
-
     def getTrackersObservation(self, n, noisy=[0, 0, 0, 0]):
 
         observed_position = self.__aggregatePosition__(self.trackers_true_positions[n])
@@ -363,7 +321,7 @@ class Environment:
                                 # observed_nearest_neighbor_bearing, 
                                 # observed_nearest_neighbor_orientation,
                                 # observed_target_distance, 
-                                observed_bearing
+                                # observed_bearing
                                 ] )
         # print(observation)
 
@@ -695,7 +653,7 @@ class Environment:
 
 
             if episode % 1000 == 0:
-                print('ep = ', episode, ', step = ', step, ', t = ', time, 'ratio of successful episodes = ', succ_episodes/(episode+1), ', eps = ', [self.trackers_network[n].lr_pars['eps'] for n in self.trackers_network.keys()], ', alpha = ', [self.trackers_network[n].lr_pars['alpha'] for n in self.trackers_network.keys()])
+                print('ep = ', episode, ', step = ', step, ', t = ', time, 'ratio of successful episodes = {:.2f}'.format(succ_episodes/(episode+1)), ', eps = ', [self.trackers_network[n].lr_pars['eps'] for n in self.trackers_network.keys()], ', alpha = ', [self.trackers_network[n].lr_pars['alpha'] for n in self.trackers_network.keys()])
 
             self.time_trajectories += [time]
             for i in self.trackers_network.keys(): 
