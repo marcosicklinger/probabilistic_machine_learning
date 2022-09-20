@@ -4,12 +4,14 @@ import itertools
 from tensorflow import keras as K
 from tensorflow.keras import backend 
 import tensorflow as T
-from Utils import FeatureEmbedding, DiscreteActionSpace
+from Utils import *
 from collections import deque
 import random
 from copy import deepcopy
 import pyro.contrib.gp as gp 
-from sklearn.gaussian_process.kernels import RBF
+import pyro.distributions as distros
+from sklearn.gaussian_process.kernels import RBF,  ConstantKernel
+from sklearn.gaussian_process import GaussianProcessRegressor as GPR
 
 # ------
 # ------
@@ -26,11 +28,14 @@ class Tracker:
 
     # ACTIONS
     # -------
-    ROTATION_P = np.pi/6
-    ROTATION_N = -np.pi/6
-    NO_ROTATION = 0
-    ROT_ACT = [ROTATION_N, NO_ROTATION, ROTATION_P]
-    ACTIONS = np.array(ROT_ACT)
+    # ROTATION_P = np.pi/6
+    # ROTATION_N = -np.pi/6
+    # NO_ROTATION = 0
+    # ROT_ACT = [ROTATION_N, NO_ROTATION, ROTATION_P]
+    # ACTIONS = np.array(ROT_ACT)
+    STEP_SIZE = 0.1
+    MOVEMENTS = [np.array([-STEP_SIZE,0]), np.array([STEP_SIZE,0]), np.array([0,-STEP_SIZE]), np.array([0,STEP_SIZE])]
+    ACTIONS = np.array(MOVEMENTS)
     # -------
 
     # SWARMAGENT PROPERTIES
@@ -169,98 +174,144 @@ class Tracker:
 # ------------------------------
 # GAUSSIAN PROCESS TARCKER CLASS
 # ------------------------------
-class GPTracker:
+class DGPQTracker:
 
     # ID = itertools.count()
 
     # ACTIONS
     # -------
-    ROTATION_P = np.pi/6
-    ROTATION_N = -np.pi/6
-    NO_ROTATION = 0
-    ROT_ACT = [ROTATION_N, NO_ROTATION, ROTATION_P]
-    ACTIONS = np.array(ROT_ACT)
+    # ROTATION_P = np.pi/6
+    # ROTATION_N = -np.pi/6
+    # NO_ROTATION = 0
+    # ROT_ACT = [ROTATION_N, NO_ROTATION, ROTATION_P]
+    # ACTIONS = np.array(ROT_ACT)
+    STEP_SIZE = 0.1
+    MOVEMENTS = [np.array([-STEP_SIZE,0]), np.array([STEP_SIZE,0]), np.array([0,-STEP_SIZE]), np.array([0,STEP_SIZE])]
+    ACTIONS = np.array(MOVEMENTS)
     # -------
 
     # SWARMAGENT PROPERTIES
     # ------------------
     SPEED = 3
-    DETECTION_RANGE = 30
+    DETECTION_RANGE = 0
     DETECTION_PROBABILITY = lambda distance: 1 if distance < Tracker.DETECTION_RANGE else 0 # lambda distance: np.exp( - 0.1 * (distance / Tracker.DETECTION_RANGE)**2 ) if distance < Tracker.DETECTION_RANGE else 0
-    INTERACTION_RANGE = 60
+    INTERACTION_RANGE = 0
     # ------------------
 
 
 
     def __init__(self, 
-                lr_pars:"learning parameters dictionary",
-                state_space_size,
+                init_lr_pars,
+                state_dimensions,
                 init_position=None,
                 init_speed=None,
                 init_orientation=None,
-                memoryless=True
+                Rmax = 10,
+                Vmax = 10
     ):
-
-        self.state_space_size = state_space_size
-
+        self.state_dimensions = state_dimensions 
         self.position = init_position
         self.speed = init_speed
         self.orientation = init_orientation
         self.actions = DiscreteActionSpace( len(Tracker.ACTIONS) )
         self.neighborhood = []
-        self.observation = np.empty((len(self.state_space_size),))
-        self.memoryless = memoryless
-        if not self.memoryless: 
-            self.memory = deque(maxlen=2000)
-            self.replay_size = 32
-
-        self.lr_pars = deepcopy(lr_pars)
-        self.Q = 0
-
-        self.gp_kernel = RBF(1.0)
-
-
-
-
-    def seesTarget(self, distance):
-
-        sees_target = np.random.choice([0, 1], 1, p=[1-Tracker.DETECTION_PROBABILITY(distance), Tracker.DETECTION_PROBABILITY(distance)])
-
-        return sees_target
-
-
-
-    def observeNeighborhood(self, new_neighbors):
-
-        del self.neighborhood
-        self.neighborhood = new_neighbors
-
-
-
-    def observeLocalProperties(self, local_observation):
-
-        del self.local_observation
-        self.local_observation = local_observation
-        return np.append(np.array( [self.position, self.speed] ).flatten(), self.orientation)
+        self.observation = np.empty(self.state_dimensions)
+        self.init_lr_pars = deepcopy(init_lr_pars)
+        self.gamma = self.init_lr_pars['gamma']
+        self.LQ = self.init_lr_pars['LQ']
+        self.eps_1 = self.init_lr_pars['eps_1']
+        self.delta_1 = self.init_lr_pars['delta_1']
+        self.Vmax = Vmax
+        self.Rmax = Rmax
+        self.tolerance2 = (2*self.eps_1**2)/((Vmax**2)*np.log(2/self.delta_1))
+        self.exploration = self.init_lr_pars['exploration']
+        self.update_rate = 1.
+        self.Qinit = 0
+        self.length_scale = 0.05
+        self.BVset = [[] for _ in range(self.actions.n_actions)]
+        self.frozen_BVset = deepcopy(self.BVset)
+        self.RBF_kernel = RBF(length_scale=self.length_scale)
+        self.RBF_kernel.set_params(**{'length_scale_bounds': (1e-8, 100000.0)})
+        self.GP_kernel = self.RBF_kernel
+        self.GPR = [GPR(self.GP_kernel) for i in range(self.actions.n_actions)]
+        # self.prior_mean = lambda s, a: self.Qa(s, a) 
 
 
     
-    def remember(self, experience):
-        assert not self.memoryless, "memoryless trackers cannot remember"
+    def approximator(self, s, a):
 
-        self.memory.append(experience)
+        return np.min( [np.min( [self.GPR[a].predict(s.reshape(1,-1)) + self.LQ * SADistance(s, a, bv['s'], a) 
+                        for bv in self.BVset[a]] ), self.Vmax] ) 
 
+
+
+    def prior_mean(self, s, a):
+
+        if not bool(self.BVset[a]):
+            return self.Rmax      
+        return self.approximator(s, a)
+
+
+
+    def Qa(self, observation, action):
+
+        if not bool(self.BVset[action]): 
+            return self.Rmax
+        # print(len(self.BVset[action]))
+        # print(self.approximator(observation, action))
+        return self.approximator(observation, action)
+
+
+    
+    def Q(self, observation):
+
+        Q = np.empty(self.actions.n_actions)
+
+        for action in self.actions.action_indeces:
+            Q[action] = self.Qa(observation, action)
+        
+        return Q
+
+
+
+    def updateBasisVectorSet(self, mu, observation, action):
+
+        # self.BVset[action] += [{'mu': mu, 's': observation}]
+        len_before = len(self.BVset[action])
+        # print(len_before, end='\r')
+
+        self.BVset[action] += [{'mu': mu, 's': observation}]
+        if bool(self.BVset[action]):
+            reduntant_basis_vectors = []
+            for j, bv_j in enumerate(self.BVset[action]):
+                if j != len(self.BVset[action]) - 1:
+                    # if self.GPR[action].predict(observation.reshape(1,-1)) + self.LQ * SADistance(observation, action, bv_j['s'], action) <= self.GPR[action].predict(bv_j['s'].reshape(1,-1)): #bv_j['mu']:
+                    if SADistance(observation, action, bv_j['s'], action) < 0.1:
+                        if mu <= bv_j['mu']:
+                        # print( SADistance(observation, action, bv_j['s'], action))
+                            reduntant_basis_vectors += [j]
+            # print(bool(reduntant_basis_vectors), len(reduntant_basis_vectors))
+            for idx in sorted(reduntant_basis_vectors, reverse=True):
+                del self.BVset[action][idx]
+
+        # self.BVset[action] += [{'mu': mu, 's': observation}]
+
+        # if len(self.BVset[action]) > 500:
+        #     del self.BVset[action][0]
+        # print(len(self.BVset[action]))
 
 
     def policy(self, observation:"state or observation"):
 
         '''computes the agent's policy as the average of Qa and Qb'''
-        # best_actions = ( self.q_hat.predict(observation) == np.max( self.q_hat.predict(observation) ) )
-        best_actions = self.actions.getModelBestActions( self.Q[ (*tuple(observation), ) ] )
-        policy = self.lr_pars['eps'] * np.ones( self.actions.n_actions ) / self.actions.n_actions + \
-                (1 - self.lr_pars['eps']) * best_actions / np.sum(best_actions)
-        # print(best_actions.shape)
-        # print(policy.shape)
+        best_actions = self.actions.getModelBestActions( self.Q(observation) ) 
+        # best_actions = self.actions.getModelBestActions( np.array( [self.GPR[action].predict(observation.reshape(1, -1), return_std=False)[0]
+        #                                                             for action in range(self.actions.n_actions)] ) )
+        # policy = self.exploration * np.ones( self.actions.n_actions ) / self.actions.n_actions + \
+        #         (1 - self.exploration) * best_actions / np.sum(best_actions)
+        policy = best_actions / np.sum(best_actions)
+        # # print(best_actions.shape)
+        # # print(policy.shape)
         return policy
 
 
@@ -272,26 +323,40 @@ class GPTracker:
 
 
 
-    def expectedSarsaStep(self, observation, action, reward, next_observation, done, step):
+    def learn(self, observation, action, reward, next_observation, done, step):
 
-        dQ = reward - self.Q[ (*observation, action) ]
-        if not done: dQ += self.lr_pars['gamma'] * ( np.dot(self.policy(next_observation), self.Q[ (*next_observation, ) ]) ) 
-       
-        if step < self.lr_pars['start_update']:
-            self.Q[ (*observation, action) ] += self.lr_pars['alpha_0']*dQ
-        else:
-            self.Q[ (*observation, action) ] += self.lr_pars['alpha']*dQ
+        # print('obs ', observation, '  -  act ', action, '  -  check ', observation == next_observation)
 
+        # q = reward + self.gamma * np.max(self.Q(next_observation)) 
+        # q = reward + self.gamma * np.max([self.GPR[a].predict(next_observation.reshape(1,-1)) for a in self.actions.action_indeces]) if step > 0 else reward
 
+        q = reward + self.gamma * np.dot( self.Q(next_observation), self.policy(next_observation) )
+        # print(q)
 
-    def memoryReplayStep(self, replay_size):
+        mu_prior = self.prior_mean(observation, action)
 
-        memory_set = random.sample(self.memory, replay_size)
+        _, std_dev_1 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
+        # print('std1', std_dev_1[0])
+        if std_dev_1[0]**2  > self.tolerance2:
+            # print('FIRST GP UPDATE')
+            self.GPR[action].fit(observation.reshape(1,-1), np.array([q - mu_prior]))
+        # if np.abs(mean_1 - q) > std_dev_1:
+            # print('here')
+            # self.GPR[action].fit(observation.reshape(1,-1), np.array([q]))
 
-        for observation, action, reward, next_observation, done in memory_set:
-            self.expectedSarsaStep(observation, action, reward, next_observation, done)
-        
-
+        mean_2, std_dev_2 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
+        mean_2[0] += mu_prior
+        # print('Qa: ', self.Qa(observation, action), '   mean: ', mean_2[0])
+        # print('std2', std_dev)
+        # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
+        print(std_dev_1[0]**2, self.tolerance2, std_dev_2[0]**2, std_dev_1[0]**2 > self.tolerance2, self.tolerance2 >= std_dev_2[0]**2, self.Qa(observation, action) - mean_2[0] > 2*self.eps_1)
+        print(self.Qa(observation, action) - mean_2[0])
+        if std_dev_1[0]**2 > self.tolerance2 >= std_dev_2[0]**2 and self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
+            # print('SECOND GP UPDATE')
+            self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
+            # print('woy')
+            for a in range(self.actions.n_actions):
+                self.GPR[a] = GPR(self.GP_kernel)            
 
 # -------------
 

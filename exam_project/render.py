@@ -24,10 +24,10 @@ from matplotlib.animation import PillowWriter
 import os.path
 
 low_boundaries = [0, 0]
-high_boundaries = [100,100]
+high_boundaries = [1,1]
 
 N = 1
-lr_pars = {'a': 0.001, 'expa': 0.999, 'eps': 0.01, 'expe': 1, 'p_angle': 8}
+lr_pars = {'a': 0.09, 'expa': 0.9999, 'eps': 0.14, 'expe': 1.5, 'p_angle': 8}
 
 
 # duration = np.load('/home/marco/active_object_tracking_modelling/constvel_trials/episodes/duration_doubleNoTDist_{}_{}.npy'.format(lr_pars, episode))
@@ -39,7 +39,8 @@ lr_pars = {'a': 0.001, 'expa': 0.999, 'eps': 0.01, 'expe': 1, 'p_angle': 8}
 
 
 episode = int(input('insert episode to study: '))
-saved_episodes_dict = np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/renderepisodes_singleNoTDist_{}.npy'.format(lr_pars), allow_pickle=True).item()
+# saved_episodes_dict = np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/renderepisodes_singleNoTDist_{}.npy'.format(lr_pars), allow_pickle=True).item()
+saved_episodes_dict = np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/renderepisodes_{}_NoTDist.npy'.format(N), allow_pickle=True).item()
 # print(list(saved_episodes_dict.keys()))
 episode_dict = saved_episodes_dict[episode]
 
@@ -70,32 +71,32 @@ def motion(t):
 
     ax.clear()
 
-    ax.set_xlim([low_boundaries[0]-5, high_boundaries[0]+5])
-    ax.set_ylim([low_boundaries[1]-5, high_boundaries[1]+5])
+    ax.set_xlim([low_boundaries[0], high_boundaries[0]])
+    ax.set_ylim([low_boundaries[1], high_boundaries[1]])
 
     for n in range(N):
         detection_zone = plt.Circle((X_trackers_coords[n][t], Y_trackers_coords[n][t]), radius=Tracker.DETECTION_RANGE, alpha=0.1, color='k')
         catching_zone = plt.Circle((X_trackers_coords[n][t], Y_trackers_coords[n][t]), radius=3, fill=False, linestyle='--', color='k')
         # interaction_zone = plt.Circle((X_trackers_coords[n][t], Y_trackers_coords[n][t]), radius=Tracker.INTERACTION_RANGE, alpha=0.1, color='k')
-        ax.add_artist(detection_zone)
-        ax.add_artist(catching_zone)
+        # ax.add_artist(detection_zone)
+        # ax.add_artist(catching_zone)
         # ax.add_artist(interaction_zone)
         tracker_path_x = X_trackers_coords[n][:t+1]
-        tracker_trail_x = tracker_path_x[-10:]
+        tracker_trail_x = tracker_path_x[-7:]
         tracker_path_y = Y_trackers_coords[n][:t+1]
-        tracker_trail_y = tracker_path_y[-10:]
+        tracker_trail_y = tracker_path_y[-7:]
         target_path_x = X_target_coords[:t+1]
-        target_trail_x = target_path_x[-10:]
+        target_trail_x = target_path_x[-7:]
         target_path_y = Y_target_coords[:t+1]
-        target_trail_y = target_path_y[-10:]
+        target_trail_y = target_path_y[-7:]
         # 'g' if target_observation[n][t] else 'r'
-        # ax.plot( tracker_trail_x, tracker_trail_y, color= 'g' if target_observation[n][t] else 'k', linestyle='--', alpha=0.33 )
+        ax.plot( tracker_trail_x, tracker_trail_y, color= 'red', linestyle='--', alpha=0.33 )
         # ax.plot( target_trail_x, target_trail_y, color= 'k', linestyle='--', alpha=0.33 )
         marker = matplotlib.markers.MarkerStyle('+')
         marker._transform = marker.get_transform().rotate_deg(THETA_trackers[n][t] * 180/np.pi)
-        ax.scatter(X_trackers_coords[n][t], Y_trackers_coords[n][t], color='g' if target_observation[n][t] else 'k', marker=marker, s=100)
-        ax.text(X_trackers_coords[n][t]+0.5, Y_trackers_coords[n][t]+0.5, '{:.2f}'.format(np.sqrt(Vx_trackers_magnitude[n][t]**2 + Vy_trackers_magnitude[n][t]**2)), 
-                color='g' if target_observation[n][t] else 'k', ha='center', va='center', fontsize=15)
+        ax.scatter(X_trackers_coords[n][t], Y_trackers_coords[n][t], color='red', marker=marker, s=200, linewidth=3) #'g' if target_observation[n][t] else 'k'
+        # ax.text(X_trackers_coords[n][t]+0.5, Y_trackers_coords[n][t]+0.5, '{:.2f}'.format(np.sqrt(Vx_trackers_magnitude[n][t]**2 + Vy_trackers_magnitude[n][t]**2)), 
+        #         color='g' if target_observation[n][t] else 'k', ha='center', va='center', fontsize=15)
 
     ax.scatter(X_target_coords[t], Y_target_coords[t], color='k', marker='o', s=100, label='Target')
 

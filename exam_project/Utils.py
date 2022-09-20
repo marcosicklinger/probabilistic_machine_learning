@@ -70,3 +70,11 @@ class DiscreteActionSpace:
         return (model_prediction == np.max( model_prediction ))
 
         
+def SADistance(s1, a1, s2, a2):
+    # print(s1, s2)
+    s1_s2_L1Distance = np.linalg.norm(s1-s2, ord=2)
+    # print(s1_s2_L1Distance)
+    # a1_a2_L1Distance = 1 if a1 != a2 else 0
+    SAL1distance = s1_s2_L1Distance #+ a1_a2_L1Distance
+
+    return SAL1distance

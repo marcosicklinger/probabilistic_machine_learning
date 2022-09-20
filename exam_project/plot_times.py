@@ -25,7 +25,7 @@ import os.path
 
 # episode = input("Enter episode: ")
 episode_1 = 99999
-episode_2 = 49999
+episode_2 = 79999
 n_trials = 7
 n_agents = 1
 
@@ -33,8 +33,9 @@ time = []
 
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_single.npy'.format(episode_2), allow_pickle=True)]
 
-lr_pars_1 = {'a': 0.02, 'expa': 0.9999, 'eps': 0.03, 'expe': 1.05, 'p_angle': 8}
-time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(episode_2, lr_pars_1), allow_pickle=True)]
+lr_pars_1 = {'a': 0.09, 'expa': 0.9999, 'eps': 0.14, 'expe': 1.5, 'p_angle': 8}
+# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(5000, lr_pars_1), allow_pickle=True)]
+time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_{}_NoTDist.npy'.format(1000, n_agents), allow_pickle=True)]
 # lr_pars_2 = {'a': 0.005, 'expa': 0.9, 'eps': 0.1, 'expe': 1.05, 'p_angle': 8}
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_double_{}.npy'.format(episode_2, lr_pars_2), allow_pickle=True)]
 # lr_pars_3 = {'a': 0.002, 'expa': 0.8, 'eps': 0.05, 'expe': 0.8, 'p_angle': 8}
@@ -54,7 +55,7 @@ time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials
 # lr_pars_10 = {'a': 0.003, 'expa': 0.999, 'eps': 0.025, 'expe': 1.05, 'p_angle': 12}
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_doubleNoTDistMDP_{}.npy'.format(episode_2, lr_pars_10), allow_pickle=True)]
 
-periods = 500
+periods = 50
 
 fig, ax = plt.subplots(figsize=(10,10))
 plt.suptitle('Duration comparison (moving average over {} episodes)'.format(periods))
