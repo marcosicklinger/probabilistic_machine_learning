@@ -10,7 +10,7 @@ import random
 from copy import deepcopy
 import pyro.contrib.gp as gp 
 import pyro.distributions as distros
-from sklearn.gaussian_process.kernels import RBF,  ConstantKernel
+from sklearn.gaussian_process.kernels import RBF,  ConstantKernel, WhiteKernel
 from sklearn.gaussian_process import GaussianProcessRegressor as GPR
 
 # ------
@@ -204,6 +204,7 @@ class DGPQTracker:
                 init_position=None,
                 init_speed=None,
                 init_orientation=None,
+                noise_diagonal_var=None,
                 Rmax = 10,
                 Vmax = 10
     ):
@@ -217,28 +218,32 @@ class DGPQTracker:
         self.init_lr_pars = deepcopy(init_lr_pars)
         self.gamma = self.init_lr_pars['gamma']
         self.LQ = self.init_lr_pars['LQ']
-        self.eps_1 = self.init_lr_pars['eps_1']
         self.delta_1 = self.init_lr_pars['delta_1']
         self.Vmax = Vmax
         self.Rmax = Rmax
-        self.tolerance2 = (2*self.eps_1**2)/((Vmax**2)*np.log(2/self.delta_1))
+        self.noise_level = 1
+        self.epsilon = 100
+        self.eps_1 = (1./3)*(1 - self.gamma)
+        self.delta = 0.9
+        self.c = (self.epsilon**2)*(1-self.gamma)**4
+        self.tolerance2 = ( 2*self.noise_level*(self.epsilon**2)*(1-self.gamma)**4 )/( 9*(self.Rmax**2)*np.log((6/self.delta)*self.actions.n_actions) )
         self.exploration = self.init_lr_pars['exploration']
         self.update_rate = 1.
         self.Qinit = 0
         self.length_scale = 0.05
         self.BVset = [[] for _ in range(self.actions.n_actions)]
         self.frozen_BVset = deepcopy(self.BVset)
-        self.RBF_kernel = RBF(length_scale=self.length_scale)
-        self.RBF_kernel.set_params(**{'length_scale_bounds': (1e-8, 100000.0)})
+        self.RBF_kernel = RBF(length_scale=self.length_scale) + WhiteKernel(noise_level=self.noise_level)
+        # self.RBF_kernel.set_params(**{'length_scale_bounds': (1e-8, 100000.0)})
         self.GP_kernel = self.RBF_kernel
-        self.GPR = [GPR(self.GP_kernel) for i in range(self.actions.n_actions)]
+        self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
         # self.prior_mean = lambda s, a: self.Qa(s, a) 
 
 
     
     def approximator(self, s, a):
 
-        return np.min( [np.min( [self.GPR[a].predict(s.reshape(1,-1)) + self.LQ * SADistance(s, a, bv['s'], a) 
+        return np.min( [np.min( [bv['mu'] + self.LQ * SADistance(s, a, bv['s'], a) 
                         for bv in self.BVset[a]] ), self.Vmax] ) 
 
 
@@ -246,7 +251,7 @@ class DGPQTracker:
     def prior_mean(self, s, a):
 
         if not bool(self.BVset[a]):
-            return self.Rmax      
+            return self.Rmax     
         return self.approximator(s, a)
 
 
@@ -254,7 +259,7 @@ class DGPQTracker:
     def Qa(self, observation, action):
 
         if not bool(self.BVset[action]): 
-            return self.Rmax
+            return 0
         # print(len(self.BVset[action]))
         # print(self.approximator(observation, action))
         return self.approximator(observation, action)
@@ -281,16 +286,17 @@ class DGPQTracker:
         self.BVset[action] += [{'mu': mu, 's': observation}]
         if bool(self.BVset[action]):
             reduntant_basis_vectors = []
-            for j, bv_j in enumerate(self.BVset[action]):
+            for j, bv_j in reversed(list(enumerate(self.BVset[action]))):
                 if j != len(self.BVset[action]) - 1:
-                    # if self.GPR[action].predict(observation.reshape(1,-1)) + self.LQ * SADistance(observation, action, bv_j['s'], action) <= self.GPR[action].predict(bv_j['s'].reshape(1,-1)): #bv_j['mu']:
-                    if SADistance(observation, action, bv_j['s'], action) < 0.1:
-                        if mu <= bv_j['mu']:
+                    if mu + self.LQ * SADistance(observation, action, bv_j['s'], action) <= bv_j['mu']: #bv_j['mu']:
+                    # if SADistance(observation, action, bv_j['s'], action) < 0.2:
+                    #     if mu <= bv_j['mu']:
                         # print( SADistance(observation, action, bv_j['s'], action))
-                            reduntant_basis_vectors += [j]
+                            # reduntant_basis_vectors += [j]
+                            del self.BVset[action][j]
             # print(bool(reduntant_basis_vectors), len(reduntant_basis_vectors))
-            for idx in sorted(reduntant_basis_vectors, reverse=True):
-                del self.BVset[action][idx]
+            # for idx in sorted(reduntant_basis_vectors, reverse=True):
+            #     del self.BVset[action][idx]
 
         # self.BVset[action] += [{'mu': mu, 's': observation}]
 
@@ -305,9 +311,8 @@ class DGPQTracker:
         best_actions = self.actions.getModelBestActions( self.Q(observation) ) 
         # best_actions = self.actions.getModelBestActions( np.array( [self.GPR[action].predict(observation.reshape(1, -1), return_std=False)[0]
         #                                                             for action in range(self.actions.n_actions)] ) )
-        # policy = self.exploration * np.ones( self.actions.n_actions ) / self.actions.n_actions + \
-        #         (1 - self.exploration) * best_actions / np.sum(best_actions)
-        policy = best_actions / np.sum(best_actions)
+        policy = self.exploration * np.ones( self.actions.n_actions ) / self.actions.n_actions + (1 - self.exploration) * best_actions / np.sum(best_actions)
+        # policy = best_actions / np.sum(best_actions)
         # # print(best_actions.shape)
         # # print(policy.shape)
         return policy
@@ -325,10 +330,8 @@ class DGPQTracker:
 
         # print('obs ', observation, '  -  act ', action, '  -  check ', observation == next_observation)
 
-        # q = reward + self.gamma * np.max(self.Q(next_observation)) 
-        # q = reward + self.gamma * np.max([self.GPR[a].predict(next_observation.reshape(1,-1)) for a in self.actions.action_indeces]) if step > 0 else reward
-
-        q = reward + self.gamma * np.dot( self.Q(next_observation), self.policy(next_observation) )
+        q = reward + self.gamma * np.max(self.Q(next_observation)) 
+        # q = reward + self.gamma * np.dot( self.Q(next_observation), self.policy(next_observation) )
         # print(q)
 
         mu_prior = self.prior_mean(observation, action)
@@ -338,7 +341,7 @@ class DGPQTracker:
         if std_dev_1[0]**2  > self.tolerance2:
             # print('FIRST GP UPDATE')
             self.GPR[action].fit(observation.reshape(1,-1), np.array([q - mu_prior]))
-        # if np.abs(mean_1 - q) > std_dev_1:
+        # if np.abs(mean_1 - q) > std_dev_1bv_j['mu']:
             # print('here')
             # self.GPR[action].fit(observation.reshape(1,-1), np.array([q]))
 
@@ -348,13 +351,13 @@ class DGPQTracker:
         # print('std2', std_dev)
         # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
         print(std_dev_1[0]**2, self.tolerance2, std_dev_2[0]**2, std_dev_1[0]**2 > self.tolerance2, self.tolerance2 >= std_dev_2[0]**2, self.Qa(observation, action) - mean_2[0] > 2*self.eps_1)
-        print(self.Qa(observation, action) - mean_2[0])
-        if std_dev_1[0]**2 > self.tolerance2 >= std_dev_2[0]**2 and self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
-            # print('SECOND GP UPDATE')
-            self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
-            # print('woy')
-            for a in range(self.actions.n_actions):
-                self.GPR[a] = GPR(self.GP_kernel)            
+        # print(self.Qa(observation, action) - mean_2[0])
+        if std_dev_1[0]**2 > self.tolerance2 >= std_dev_2[0]**2: #and self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
+            if np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1:
+                # print('SECOND GP UPDATE')
+                self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
+                # print('woy')
+                self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]     
 
 # -------------
 

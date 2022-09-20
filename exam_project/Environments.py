@@ -729,9 +729,11 @@ class DGPQEnvironment:
         
         self.state_dimensions = 2
         self.lr_pars = lr_pars
+        self.noise_diagonal_var = None
 
         self.n_trackers = n_trackers
         self.n_targets = 1
+        
         self.low_boundaries = low
         self.high_boundaries = high
         self.hyper_pars = hyper_pars
@@ -925,7 +927,8 @@ class DGPQEnvironment:
         trackers_high_x = (trackers_starting_zone_x+1)*zone_xamplitude
         trackers_low_y = trackers_starting_zone_y*zone_yamplitude
         trackers_high_y = (trackers_starting_zone_y+1)*zone_yamplitude
-        self.trackers_starting_positions = self.__initializeAgentsPosition__(self.n_trackers, [trackers_low_x, trackers_low_y], [trackers_high_x, trackers_high_y])
+        # self.trackers_starting_positions = self.__initializeAgentsPosition__(self.n_trackers, [trackers_low_x, trackers_low_y], [trackers_high_x, trackers_high_y])
+        self.trackers_starting_positions = [np.array([0,0])]
         self.trackers_true_positions = [self.trackers_starting_positions[n] for n in range(self.n_trackers)]
 
         self.trackers_starting_orientations = self.__initializeAgentsOrientation__(self.n_trackers)
@@ -1151,7 +1154,7 @@ class DGPQEnvironment:
                 if(done): 
                     succ_episodes += 1
                 
-                print(episode, [len(self.trackers_network[0].BVset[action]) for action in self.trackers_network[0].actions.action_indeces], end='\r')
+                print(episode, [len(self.trackers_network[0].BVset[action]) for action in self.trackers_network[0].actions.action_indeces], self.trackers_network[0].policy(self.trackers_network[0].observation), succ_episodes/(episode+1), end='\r')
 
             # if done: break
 
