@@ -78,3 +78,6 @@ def SADistance(s1, a1, s2, a2):
     SAL1distance = s1_s2_L1Distance #+ a1_a2_L1Distance
 
     return SAL1distance
+
+def CoverigNumber(domain_dimensions, ball_radius):
+    return np.ceil((domain_dimensions[1][0]-domain_dimensions[0][0])/(ball_radius*2))*np.ceil((domain_dimensions[1][1]-domain_dimensions[0][1])/(ball_radius*2))

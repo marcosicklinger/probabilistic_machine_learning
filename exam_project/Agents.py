@@ -96,7 +96,7 @@ class Tracker:
 
         self.lr_pars = deepcopy(lr_pars)
         self.Q = np.zeros((*self.state_space_size, self.actions.n_actions))
-
+    def
 
     def seesTarget(self, distance):
 
