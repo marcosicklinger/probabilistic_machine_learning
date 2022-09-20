@@ -227,10 +227,11 @@ class DGPQTracker:
         self.Rmax = Rmax
         self.noise_level = 1
         self.epsilon = 100
-        self.eps_1 = (1./3)*(1 - self.gamma)
+        self.eps_1 = (1./3)*self.epsilon*(1 - self.gamma)
         self.delta = 0.9
         self.tolerance2_numerator = 2*self.noise_level*(self.epsilon**2)*(1-self.gamma)**4 
         self.Ns = CoverigNumber([self.low_boundaries, self.high_boundaries], self.epsilon*(1-self.gamma)/(3*self.LQ))
+        self.K = self.actions.n_actions*self.Ns*( (3*self.Rmax)/(( (1 - self.gamma)**2 )*self.epsilon) + 1)
         self.tolerance2 = self.tolerance2_numerator/( 9*(self.Rmax**2)*np.log( (6/self.delta)*self.actions.n_actions*self.Ns*(1 + self.K)) )
         self.exploration = self.init_lr_pars['exploration']
         self.update_rate = 1.
