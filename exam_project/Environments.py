@@ -766,7 +766,7 @@ class DGPQEnvironment:
         self.memoryless_trackers = memoryless_trackers
         self.trackers_network = dict()
         for n in range(n_trackers):
-            self.trackers_network[n] = DGPQTracker(self.lr_pars, self.state_dimensions)
+            self.trackers_network[n] = DGPQTracker(self.lr_pars, self.state_dimensions, self.low_boundaries, self.high_boundaries)
         
         self.actions = {n: None for n in self.trackers_network.keys()}
 

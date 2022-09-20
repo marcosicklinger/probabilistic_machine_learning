@@ -201,6 +201,8 @@ class DGPQTracker:
     def __init__(self, 
                 init_lr_pars,
                 state_dimensions,
+                low, 
+                high,
                 init_position=None,
                 init_speed=None,
                 init_orientation=None,
@@ -209,6 +211,8 @@ class DGPQTracker:
                 Vmax = 10
     ):
         self.state_dimensions = state_dimensions 
+        self.low_boundaries = low
+        self.high_boundaries = high
         self.position = init_position
         self.speed = init_speed
         self.orientation = init_orientation
@@ -225,8 +229,9 @@ class DGPQTracker:
         self.epsilon = 100
         self.eps_1 = (1./3)*(1 - self.gamma)
         self.delta = 0.9
-        self.c = (self.epsilon**2)*(1-self.gamma)**4
-        self.tolerance2 = ( 2*self.noise_level*(self.epsilon**2)*(1-self.gamma)**4 )/( 9*(self.Rmax**2)*np.log((6/self.delta)*self.actions.n_actions) )
+        self.tolerance2_numerator = 2*self.noise_level*(self.epsilon**2)*(1-self.gamma)**4 
+        self.Ns = CoverigNumber([self.low_boundaries, self.high_boundaries], self.epsilon*(1-self.gamma)/(3*self.LQ))
+        self.tolerance2 = self.tolerance2_numerator/( 9*(self.Rmax**2)*np.log( (6/self.delta)*self.actions.n_actions*self.Ns*(1 + self.K)) )
         self.exploration = self.init_lr_pars['exploration']
         self.update_rate = 1.
         self.Qinit = 0
