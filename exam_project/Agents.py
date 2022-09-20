@@ -96,8 +96,6 @@ class Tracker:
 
         self.lr_pars = deepcopy(lr_pars)
         self.Q = np.zeros((*self.state_space_size, self.actions.n_actions))
-    def
-
     def seesTarget(self, distance):
 
         sees_target = np.random.choice([0, 1], 1, p=[1-Tracker.DETECTION_PROBABILITY(distance), Tracker.DETECTION_PROBABILITY(distance)])
