@@ -14,7 +14,6 @@ from Agents import *
 from WorldFeatures import *
 import itertools
 from numpy import linalg as alg
-import tensorflow as T
 import os
 from matplotlib import animation
 from matplotlib.animation import PillowWriter 

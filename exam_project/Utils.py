@@ -1,5 +1,3 @@
-import keras as K
-import tensorflow as T
 import numpy as np
 
 def moving_average(data_set, periods=100, mode='same'):
