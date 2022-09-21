@@ -207,8 +207,8 @@ class DGPQTracker:
                 init_speed=None,
                 init_orientation=None,
                 noise_diagonal_var=None,
-                Rmax = 10,
-                Vmax = 10
+                Rmax = 1,
+                Vmax = 1
     ):
         self.state_dimensions = state_dimensions 
         self.low_boundaries = low
@@ -222,14 +222,13 @@ class DGPQTracker:
         self.init_lr_pars = deepcopy(init_lr_pars)
         self.gamma = self.init_lr_pars['gamma']
         self.LQ = self.init_lr_pars['LQ']
-        self.delta_1 = self.init_lr_pars['delta_1']
         self.Vmax = Vmax
         self.Rmax = Rmax
-        self.noise_level = 1
-        self.epsilon = 100
+        self.noise_level = 0.1
+        self.epsilon = self.init_lr_pars['epsilon']
         self.eps_1 = (1./3)*self.epsilon*(1 - self.gamma)
-        self.delta = 0.9
-        self.tolerance2_numerator = 2*self.noise_level*(self.epsilon**2)*(1-self.gamma)**4 
+        self.delta = 0.99
+        self.tolerance2_numerator = 2*self.noise_level*(self.epsilon**2)*(1 - self.gamma)**4 
         self.Ns = CoverigNumber([self.low_boundaries, self.high_boundaries], self.epsilon*(1-self.gamma)/(3*self.LQ))
         self.K = self.actions.n_actions*self.Ns*( (3*self.Rmax)/(( (1 - self.gamma)**2 )*self.epsilon) + 1)
         self.tolerance2 = self.tolerance2_numerator/( 9*(self.Rmax**2)*np.log( (6/self.delta)*self.actions.n_actions*self.Ns*(1 + self.K)) )
@@ -239,9 +238,9 @@ class DGPQTracker:
         self.length_scale = 0.05
         self.BVset = [[] for _ in range(self.actions.n_actions)]
         self.frozen_BVset = deepcopy(self.BVset)
-        self.RBF_kernel = RBF(length_scale=self.length_scale) + WhiteKernel(noise_level=self.noise_level)
-        # self.RBF_kernel.set_params(**{'length_scale_bounds': (1e-8, 100000.0)})
-        self.GP_kernel = self.RBF_kernel
+        self.kernel = RBF(length_scale=self.length_scale) + WhiteKernel(noise_level=self.noise_level)
+        # self.kernel.set_params(**{'length_scale_bounds': (1e-8, 100000.0)})
+        self.GP_kernel = self.kernel
         self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
         # self.prior_mean = lambda s, a: self.Qa(s, a) 
 
@@ -257,7 +256,7 @@ class DGPQTracker:
     def prior_mean(self, s, a):
 
         if not bool(self.BVset[a]):
-            return self.Rmax     
+            return self.Rmax/(1 - self.gamma)     
         return self.approximator(s, a)
 
 
@@ -341,7 +340,7 @@ class DGPQTracker:
         # print(q)
 
         mu_prior = self.prior_mean(observation, action)
-
+       
         _, std_dev_1 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
         # print('std1', std_dev_1[0])
         if std_dev_1[0]**2  > self.tolerance2:
@@ -352,14 +351,14 @@ class DGPQTracker:
             # self.GPR[action].fit(observation.reshape(1,-1), np.array([q]))
 
         mean_2, std_dev_2 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
-        mean_2[0] += mu_prior
+        # mean_2[0] += mu_prior
         # print('Qa: ', self.Qa(observation, action), '   mean: ', mean_2[0])
         # print('std2', std_dev)
         # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
         print(std_dev_1[0]**2, self.tolerance2, std_dev_2[0]**2, std_dev_1[0]**2 > self.tolerance2, self.tolerance2 >= std_dev_2[0]**2, self.Qa(observation, action) - mean_2[0] > 2*self.eps_1)
-        # print(self.Qa(observation, action) - mean_2[0])
+        # print(self.Qa(observation, action) - mean_2[0], 2*self.eps_1)
         if std_dev_1[0]**2 > self.tolerance2 >= std_dev_2[0]**2: #and self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
-            if np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1:
+            if self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
                 # print('SECOND GP UPDATE')
                 self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
                 # print('woy')

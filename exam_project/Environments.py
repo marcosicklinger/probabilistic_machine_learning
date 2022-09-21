@@ -1002,7 +1002,7 @@ class DGPQEnvironment:
         for i in self.trackers_network.keys():
             
             # rotation_angle = Tracker.ACTIONS[action_dict[i]]
-            movement = Tracker.ACTIONS[action_dict[i]] + np.random.multivariate_normal([0,0], [[7.5e-4,0],[0,7.5e-4]])
+            movement = Tracker.ACTIONS[action_dict[i]] + np.random.multivariate_normal([0,0], [[0.01,0],[0,0.01]])
             # print(movement)
             # self.trackers_true_velocities[i] = np.dot(rotationMatrix(rotation_angle), self.trackers_true_velocities[i]) #+ np.random.normal(0, 0.15)
 
@@ -1063,7 +1063,7 @@ class DGPQEnvironment:
         for i in self.trackers_network.keys():
             if self.__computeDistance__(self.trackers_true_positions[i], self.target_position) <= self.catching_distance: 
                 done = True
-                rewards[i] = 10 # self.hyper_pars['max_time'] - t
+                rewards[i] = 1 # self.hyper_pars['max_time'] - t
 
         return next_observation, rewards, done
 
