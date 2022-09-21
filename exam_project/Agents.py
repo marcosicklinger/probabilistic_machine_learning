@@ -233,9 +233,9 @@ class DGPQTracker:
         self.length_scale = self.init_lr_pars['RBF_length_scale']
         self.BVset = [[] for _ in range(self.actions.n_actions)]
         self.frozen_BVset = deepcopy(self.BVset)
-        self.kernel = RBF(length_scale=self.length_scale) + WhiteKernel(noise_level=self.noise_level)
-        # self.kernel.set_params(**{'length_scale_bounds': (1e-8, 100000.0)})
-        self.GP_kernel = self.kernel
+        self.RBF_kernel_component = RBF(length_scale=self.length_scale)
+        # self.RBF_kernel_component.set_params(**{'length_scale_bounds': (1e-15, 100000.0)})
+        self.GP_kernel = self.RBF_kernel_component + WhiteKernel(noise_level=self.noise_level)
         self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
         # self.prior_mean = lambda s, a: self.Qa(s, a) 
 
@@ -357,7 +357,10 @@ class DGPQTracker:
                 # print('SECOND GP UPDATE')
                 self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
                 # print('woy')
-                self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]     
+                self.RBF_kernel_component = RBF(length_scale=self.length_scale)
+                self.kernel = self.RBF_kernel_component + WhiteKernel(noise_level=self.noise_level)
+                self.GP_kernel = self.kernel
+                self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
 
 # -------------
 
