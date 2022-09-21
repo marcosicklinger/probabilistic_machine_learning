@@ -222,7 +222,7 @@ class DGPQTracker:
         self.noise_level = 0.1
         self.epsilon = self.init_lr_pars['epsilon']
         self.eps_1 = (1./3)*self.epsilon*(1 - self.gamma)
-        self.delta = 0.99
+        self.delta = self.init_lr_pars['delta']
         self.tolerance2_numerator = 2*self.noise_level*(self.epsilon**2)*(1 - self.gamma)**4 
         self.Ns = CoverigNumber([self.low_boundaries, self.high_boundaries], self.epsilon*(1-self.gamma)/(3*self.LQ))
         self.K = self.actions.n_actions*self.Ns*( (3*self.Rmax)/(( (1 - self.gamma)**2 )*self.epsilon) + 1)
@@ -357,9 +357,9 @@ class DGPQTracker:
                 # print('SECOND GP UPDATE')
                 self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
                 # print('woy')
-                self.RBF_kernel_component = RBF(length_scale=self.length_scale)
-                self.kernel = self.RBF_kernel_component + WhiteKernel(noise_level=self.noise_level)
-                self.GP_kernel = self.kernel
+                # self.RBF_kernel_component = RBF(length_scale=self.length_scale)
+                # self.kernel = self.RBF_kernel_component + WhiteKernel(noise_level=self.noise_level)
+                # self.GP_kernel = self.kernel
                 self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
 
 # -------------

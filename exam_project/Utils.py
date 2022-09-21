@@ -54,7 +54,6 @@ class DiscreteActionSpace:
 
         self.n_actions = n
         self.action_indeces = np.array( [i for i in range(self.n_actions)] )
-        self.uniform_choice = np.array([1./self.n_actions for i in self.action_indeces])
 
 
 
@@ -64,13 +63,15 @@ class DiscreteActionSpace:
 
 
 
-    def getModelBestActions(self, model_prediction):
-        # print(model_prediction)
-        if all(model_prediction == model_prediction[0]):
-            # print('here')
-            best_action = np.random.choice(self.action_indeces, size=1, p=self.uniform_choice)[0]
+    def getModelBestActions(self, model_prediction):                                                                           
+        best_actions = model_prediction == np.max(model_prediction)
+        best_actions_indeces = None
+        if np.sum(best_actions) > 1:
+            best_actions_indeces = np.where(best_actions > 0)[0]
+            uniform_choice = np.array([1./len(best_actions_indeces) for i in best_actions_indeces])
+            best_action = np.random.choice(best_actions_indeces, size=1, p=uniform_choice)[0]
             return np.array([1. if i==best_action else 0. for i in self.action_indeces])
-        return (model_prediction == np.max( model_prediction ))
+        return best_actions
 
         
 def SADistance(s1, a1, s2, a2):

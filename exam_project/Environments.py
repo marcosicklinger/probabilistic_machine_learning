@@ -462,7 +462,7 @@ class Environment:
         for i in self.trackers_network.keys():
             
             # rotation_angle = Tracker.ACTIONS[action_dict[i]]
-            movement = Tracker.ACTIONS[action_dict[i]] + np.random.multivariate_normal([0,0], [[7.5e-4,0],[0,7.5e-4]])
+            movement = Tracker.ACTIONS[action_dict[i]] + np.random.multivariate_normal([0,0], [[0.01,0],[0,0.01]])
 
             # self.trackers_true_velocities[i] = np.dot(rotationMatrix(rotation_angle), self.trackers_true_velocities[i]) #+ np.random.normal(0, 0.15)
 
@@ -1165,7 +1165,7 @@ class DGPQEnvironment:
                 self.inefficient_coverage[i][episode] /= time
                 self.efficient_coverage[i][episode] /= time
 
-            if (episode in render) or (time > 200 and episode > n_episodes-5e3):
+            if (episode in render) or (time > 75 and episode > n_episodes-5e3):
                 episode_dict = {'episode': episode,
                             'length': time,
                             'tracker_trajectory': deepcopy(trackers_positions_history),
@@ -1178,10 +1178,10 @@ class DGPQEnvironment:
             if episode in render:
                 render_episodes[episode] = deepcopy(episode_dict)
 
-                np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/rewards_up_to_{}_{}_NoTDist'.format(episode, self.n_trackers), self.reward_trajectories)
-                np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_{}_NoTDist'.format(episode, self.n_trackers), self.time_trajectories)
+                np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/rewards_up_to_{}_{}'.format(episode, self.n_trackers), self.reward_trajectories)
+                np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_{}'.format(episode, self.n_trackers), self.time_trajectories)
 
-            elif (time > 200 and episode > n_episodes-5e3):
+            elif (time > 75 and episode > n_episodes-n_episodes//20):
                 long_episodes[episode] = deepcopy(episode_dict)
                 
             del trackers_positions_history
@@ -1191,8 +1191,8 @@ class DGPQEnvironment:
             del target_positions_history
             del trackers_action_history
         
-        np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/renderepisodes_{}_NoTDist'.format(self.n_trackers), render_episodes)
-        np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/longepisodes_{}_NoTDist'.format(self.n_trackers), long_episodes)
+        np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/renderepisodes_{}_{}'.format(self.n_trackers), render_episodes)
+        np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/longepisodes_{}_{}'.format(self.n_trackers), long_episodes)
 
             
 
