@@ -230,7 +230,7 @@ class DGPQTracker:
         self.exploration = self.init_lr_pars['exploration']
         self.update_rate = 1.
         self.Qinit = 0
-        self.length_scale = 0.05
+        self.length_scale = self.init_lr_pars['RBF_length_scale']
         self.BVset = [[] for _ in range(self.actions.n_actions)]
         self.frozen_BVset = deepcopy(self.BVset)
         self.kernel = RBF(length_scale=self.length_scale) + WhiteKernel(noise_level=self.noise_level)
