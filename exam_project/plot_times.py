@@ -32,14 +32,14 @@ n_agents = 1
 
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_single.npy'.format(episode_2), allow_pickle=True)]
 
-lr_pars = {'gamma': .8, 'LQ': 5, 'epsilon': 5, 'exploration': 0.1, 'RBF_length_scale': 0.05, 'start_update': 1e7}
+lr_pars = {'gamma': .925, 'LQ': 9, 'epsilon': 1, 'exploration': 0.1, 'RBF_length_scale': 0.05, 'start_update': 1e7}
 current_directory = os.getcwd()
 name_instance_directory = str(lr_pars).replace("'", '').replace(" ", '').replace("{", '').replace("}", '').replace(",", '_').replace(":", '_').replace(".", '_')
-time = np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_NoTDist_{}.npy'.format(name_instance_directory,1000, n_agents, 0), allow_pickle=True)
+time = np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory,1000, n_agents, 2), allow_pickle=True)
 
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(5000, lr_pars_1), allow_pickle=True)]
-for i in range(1,10):
-    time += np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_NoTDist_{}.npy'.format(name_instance_directory,1000, n_agents, i), allow_pickle=True)
+for i in range(3,10):
+    time += np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory,1000, n_agents, i), allow_pickle=True)
 # lr_pars_2 = {'a': 0.005, 'expa': 0.9, 'eps': 0.1, 'expe': 1.05, 'p_angle': 8}
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_double_{}.npy'.format(episode_2, lr_pars_2), allow_pickle=True)]
 # lr_pars_3 = {'a': 0.002, 'expa': 0.8, 'eps': 0.05, 'expe': 0.8, 'p_angle': 8}

@@ -723,9 +723,11 @@ class DGPQEnvironment:
                 hyper_pars, 
                 environment_noise=None,
                 current=None,
-                memoryless_trackers=True
+                memoryless_trackers=True,
+                instance = 0
+
     ):
-        
+        self.instance = instance
         self.state_dimensions = 2
         self.lr_pars = lr_pars
         self.noise_diagonal_var = None
@@ -742,8 +744,7 @@ class DGPQEnvironment:
             self.current = current
         if environment_noise is not None:
             self.environment_noise = environment_noise
-
-        self.target = DummyTarget() 
+        self.target = DummyTarget()
 
         self.catching_distance = 0.1
 
@@ -761,13 +762,19 @@ class DGPQEnvironment:
         target_low_y = target_starting_zone_y*zone_yamplitude
         target_high_y = (target_starting_zone_y+1)*zone_yamplitude
         self.target_position = np.array([0.95, 0.95]) #self.__initializeAgentsPosition__(self.n_targets, [target_low_x, target_low_y], [target_high_x, target_high_y])[0]
-
         self.memoryless_trackers = memoryless_trackers
         self.trackers_network = dict()
         for n in range(n_trackers):
             self.trackers_network[n] = DGPQTracker(self.lr_pars, self.state_dimensions, self.low_boundaries, self.high_boundaries)
-        
         self.actions = {n: None for n in self.trackers_network.keys()}
+        self.current_directory = os.getcwd()
+        self.name_instance_directory = str(self.lr_pars).replace("'", '').replace(" ", '').replace("{", '').replace("}",'').replace(",", '_').replace(":", '_').replace(".", '_')
+        episode_directory = os.path.join(self.current_directory + '/trials/episode/', self.name_instance_directory)
+        performance_directory = os.path.join(self.current_directory + '/trials/performance/', self.name_instance_directory)
+        if not os.path.exists(episode_directory):
+            os.makedirs(episode_directory)
+        if not os.path.exists(performance_directory):
+            os.makedirs(performance_directory)
 
 
 
@@ -1178,8 +1185,8 @@ class DGPQEnvironment:
             if episode in render:
                 render_episodes[episode] = deepcopy(episode_dict)
 
-                np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/rewards_up_to_{}_{}'.format(episode, self.n_trackers), self.reward_trajectories)
-                np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_{}'.format(episode, self.n_trackers), self.time_trajectories)
+                np.save(self.current_directory +'/trials/performance/{}/rewards_up_to_{}_{}_{}'.format(self.name_instance_directory,episode, self.n_trackers,self.instance), self.reward_trajectories)
+                np.save(self.current_directory +'/trials/performance/{}/time_up_to_{}_{}_{}'.format(self.name_instance_directory,episode, self.n_trackers,self.instance), self.time_trajectories)
 
             elif (time > 75 and episode > n_episodes-n_episodes//20):
                 long_episodes[episode] = deepcopy(episode_dict)
@@ -1191,8 +1198,8 @@ class DGPQEnvironment:
             del target_positions_history
             del trackers_action_history
         
-        np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/renderepisodes_{}_{}'.format(self.n_trackers), render_episodes)
-        np.save('/home/marco/probabilistic_machine_learning/exam_project/trials/episode/longepisodes_{}_{}'.format(self.n_trackers), long_episodes)
+        np.save(self.current_directory +'/trials/episode/{}/renderepisodes_{}_{}'.format(self.name_instance_directory, self.n_trackers, self.instance), render_episodes)
+        np.save(self.current_directory +'/trials/episode/{}/longepisodes_{}_{}'.format(self.name_instance_directory, self.n_trackers, self.instance), long_episodes)
 
             
 
