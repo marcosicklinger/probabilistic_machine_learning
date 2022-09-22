@@ -1,5 +1,5 @@
 import numpy as np
-
+import os
 def moving_average(data_set, periods=100, mode='same'):
 
     weights = np.ones(periods) / periods
@@ -85,3 +85,21 @@ def SADistance(s1, a1, s2, a2):
 
 def CoverigNumber(domain_dimensions, ball_radius):
     return np.ceil((domain_dimensions[1][0]-domain_dimensions[0][0])/(ball_radius*2))*np.ceil((domain_dimensions[1][1]-domain_dimensions[0][1])/(ball_radius*2))
+
+def CreateDirectories():
+    current_directory = os.getcwd()
+    trials_directory = os.path.join(current_directory, r'trials')
+    episode_directory = os.path.join(current_directory+'/trials/', r'episode')
+    gifs_directory = os.path.join(current_directory+'/trials/', r'gifs')
+    performance_directory = os.path.join(current_directory+'/trials/', r'performance')
+    Q_directory = os.path.join(current_directory+'/trials/', r'Q')
+    if not os.path.exists(trials_directory):
+        os.makedirs(trials_directory)
+    if not os.path.exists(episode_directory):
+        os.makedirs(episode_directory)
+    if not os.path.exists(gifs_directory):
+        os.makedirs(gifs_directory)
+    if not os.path.exists(performance_directory):
+        os.makedirs(performance_directory)
+    if not os.path.exists(Q_directory):
+        os.makedirs(Q_directory)

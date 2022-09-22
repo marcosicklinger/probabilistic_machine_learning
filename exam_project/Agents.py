@@ -124,8 +124,8 @@ class Tracker:
     def policy(self, observation:"state or observation"):
 
         '''computes the agent's policy as the average of Qa and Qb'''
-        # best_actions = ( self.q_hat.predict(observation) == np.max( self.q_hat.predict(observation) ) )
-        best_actions = self.actions.getModelBestActions( self.Q[ (*tuple(observation), ) ] )
+        best_actions = ( self.q_hat.predict(observation) == np.max( self.q_hat.predict(observation) ) )
+        # best_actions = self.actions.getModelBestActions( self.Q[ (*tuple(observation), ) ] )
         policy = self.lr_pars['eps'] * np.ones( self.actions.n_actions ) / self.actions.n_actions + \
                 (1 - self.lr_pars['eps']) * best_actions / np.sum(best_actions)
         # print(best_actions.shape)
@@ -311,8 +311,8 @@ class DGPQTracker:
         best_actions = self.actions.getModelBestActions( self.Q(observation) ) 
         # best_actions = self.actions.getModelBestActions( np.array( [self.GPR[action].predict(observation.reshape(1, -1), return_std=False)[0]
         #                                                             for action in range(self.actions.n_actions)] ) )
-        policy = self.exploration * np.ones( self.actions.n_actions ) / self.actions.n_actions + (1 - self.exploration) * best_actions / np.sum(best_actions)
-        # policy = best_actions / np.sum(best_actions)
+        # policy = self.exploration * np.ones( self.actions.n_actions ) / self.actions.n_actions + (1 - self.exploration) * best_actions / np.sum(best_actions)
+        policy = best_actions / np.sum(best_actions)
         # # print(best_actions.shape)
         # # print(policy.shape)
         return policy
@@ -346,11 +346,12 @@ class DGPQTracker:
             # self.GPR[action].fit(observation.reshape(1,-1), np.array([q]))
 
         mean_2, std_dev_2 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
+        std_dev_2[0] -= std_dev_2[0]
         # mean_2[0] += mu_prior
         # print('Qa: ', self.Qa(observation, action), '   mean: ', mean_2[0])
         # print('std2', std_dev)
         # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
-        print(std_dev_1[0]**2, self.tolerance2, std_dev_2[0]**2, std_dev_1[0]**2 > self.tolerance2, self.tolerance2 >= std_dev_2[0]**2, self.Qa(observation, action) - mean_2[0] > 2*self.eps_1)
+        # print(std_dev_1[0]**2, self.tolerance2, std_dev_2[0]**2, std_dev_1[0]**2 > self.tolerance2, self.tolerance2 >= std_dev_2[0]**2, self.Qa(observation, action) - mean_2[0] > 2*self.eps_1)
         # print(self.Qa(observation, action) - mean_2[0], 2*self.eps_1)
         if std_dev_1[0]**2 > self.tolerance2 >= std_dev_2[0]**2: #and self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
             if self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:

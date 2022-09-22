@@ -29,13 +29,17 @@ episode_2 = 79999
 n_trials = 7
 n_agents = 1
 
-time = []
 
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_single.npy'.format(episode_2), allow_pickle=True)]
 
-lr_pars_1 = {'a': 0.09, 'expa': 0.9999, 'eps': 0.14, 'expe': 1.5, 'p_angle': 8}
+lr_pars = {'gamma': .8, 'LQ': 5, 'epsilon': 5, 'exploration': 0.1, 'RBF_length_scale': 0.05, 'start_update': 1e7}
+current_directory = os.getcwd()
+name_instance_directory = str(lr_pars).replace("'", '').replace(" ", '').replace("{", '').replace("}", '').replace(",", '_').replace(":", '_').replace(".", '_')
+time = np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_NoTDist_{}.npy'.format(name_instance_directory,1000, n_agents, 0), allow_pickle=True)
+
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(5000, lr_pars_1), allow_pickle=True)]
-time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_{}_NoTDist.npy'.format(1000, n_agents), allow_pickle=True)]
+for i in range(1,10):
+    time += np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_NoTDist_{}.npy'.format(name_instance_directory,1000, n_agents, i), allow_pickle=True)
 # lr_pars_2 = {'a': 0.005, 'expa': 0.9, 'eps': 0.1, 'expe': 1.05, 'p_angle': 8}
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_double_{}.npy'.format(episode_2, lr_pars_2), allow_pickle=True)]
 # lr_pars_3 = {'a': 0.002, 'expa': 0.8, 'eps': 0.05, 'expe': 0.8, 'p_angle': 8}
@@ -54,7 +58,8 @@ time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(episode_2, lr_pars_9), allow_pickle=True)]
 # lr_pars_10 = {'a': 0.003, 'expa': 0.999, 'eps': 0.025, 'expe': 1.05, 'p_angle': 12}
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_doubleNoTDistMDP_{}.npy'.format(episode_2, lr_pars_10), allow_pickle=True)]
-
+time = time/10
+print(time)
 periods = 50
 
 fig, ax = plt.subplots(figsize=(10,10))
@@ -64,9 +69,10 @@ ax.set_ylabel('time')
 
 i = 0
 time_array = np.array(time[i])
+print(time_array)
 long_episodes = time_array[time_array > 200]
 print('number of long episodes: {}'.format(len(long_episodes)))
-average_time = moving_average(time[i], periods=periods, mode='valid')
+average_time = moving_average(time, periods=periods, mode='valid')
 ax.plot(range(len(average_time)), average_time, label='{} agents'.format(n_agents))
 # i += 1
 # average_time = moving_average(time[i], periods=periods, mode='valid')
