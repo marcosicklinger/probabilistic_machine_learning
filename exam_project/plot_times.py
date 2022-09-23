@@ -32,13 +32,12 @@ n_agents = 1
 
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_single.npy'.format(episode_2), allow_pickle=True)]
 
-lr_pars = {'gamma': .925, 'LQ': 9, 'epsilon': 1, 'exploration': 0.1, 'RBF_length_scale': 0.05, 'start_update': 1e7}
+lr_pars = {'gamma': .925, 'LQ': 9, 'epsilon': 1, 'exploration': 0.1, 'RBF_length_scale': 0.04, 'start_update': 1e7,'delta': 0.9999, 'kernel':'RBF'}
 current_directory = os.getcwd()
 name_instance_directory = str(lr_pars).replace("'", '').replace(" ", '').replace("{", '').replace("}", '').replace(",", '_').replace(":", '_').replace(".", '_')
-time = np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory,1000, n_agents, 2), allow_pickle=True)
-
+time = np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory,1000, n_agents, 1), allow_pickle=True)
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(5000, lr_pars_1), allow_pickle=True)]
-for i in range(3,10):
+for i in [3,4,5,7,8,11,12]:
     time += np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory,1000, n_agents, i), allow_pickle=True)
 # lr_pars_2 = {'a': 0.005, 'expa': 0.9, 'eps': 0.1, 'expe': 1.05, 'p_angle': 8}
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_double_{}.npy'.format(episode_2, lr_pars_2), allow_pickle=True)]
@@ -58,7 +57,7 @@ for i in range(3,10):
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(episode_2, lr_pars_9), allow_pickle=True)]
 # lr_pars_10 = {'a': 0.003, 'expa': 0.999, 'eps': 0.025, 'expe': 1.05, 'p_angle': 12}
 # time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_doubleNoTDistMDP_{}.npy'.format(episode_2, lr_pars_10), allow_pickle=True)]
-time = time/10
+time = time/14
 print(time)
 periods = 50
 

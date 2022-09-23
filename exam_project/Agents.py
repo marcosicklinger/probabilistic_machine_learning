@@ -5,7 +5,7 @@ from Utils import *
 from collections import deque
 import random
 from copy import deepcopy
-from sklearn.gaussian_process.kernels import RBF,  ConstantKernel, WhiteKernel
+from sklearn.gaussian_process.kernels import RBF,  ConstantKernel, WhiteKernel, Matern, RationalQuadratic
 from sklearn.gaussian_process import GaussianProcessRegressor as GPR
 
 # ------
@@ -233,9 +233,10 @@ class DGPQTracker:
         self.length_scale = self.init_lr_pars['RBF_length_scale']
         self.BVset = [[] for _ in range(self.actions.n_actions)]
         self.frozen_BVset = deepcopy(self.BVset)
-        self.RBF_kernel_component = RBF(length_scale=self.length_scale)
-        # self.RBF_kernel_component.set_params(**{'length_scale_bounds': (1e-15, 100000.0)})
-        self.GP_kernel = self.RBF_kernel_component + WhiteKernel(noise_level=self.noise_level)
+        self.kernel_name = self.init_lr_pars['kernel']
+        self.kernel_component = None
+        self.GP_kernel = None
+        self.reset_kernel()
         self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
         # self.prior_mean = lambda s, a: self.Qa(s, a) 
 
@@ -317,6 +318,22 @@ class DGPQTracker:
         # # print(policy.shape)
         return policy
 
+    def reset_kernel(self):
+        if self.kernel_name == 'Matern0.5':
+            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
+        if self.kernel_name == 'Matern1.5':
+            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
+        if self.kernel_name == 'Matern2.5':
+            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
+        if self.kernel_name == 'RBF':
+            self.kernel_component = RBF(length_scale=self.length_scale)
+        if self.kernel_name == ' RationalQuadratic1':
+            self.kernel_component =  RationalQuadratic(length_scale=self.length_scale, alpha=1)
+        if self.kernel_name == ' RationalQuadratic2':
+            self.kernel_component =  RationalQuadratic(length_scale=self.length_scale, alpha=2)
+        # self.kernel_component = RBF(length_scale=self.length_scale)
+        # self.RBF_kernel_component.set_params(**{'length_scale_bounds': (1e-15, 100000.0)})
+        self.GP_kernel = self.kernel_component + WhiteKernel(noise_level=self.noise_level)
 
 
     def act(self, observation:"state or observation"):
@@ -324,44 +341,76 @@ class DGPQTracker:
         return self.actions.sample(self.policy(observation))
         # return np.random.choice( range(Tracker.ACTIONS.shape[0]), 1, p=self.policy(z) )
 
-
-
     def learn(self, observation, action, reward, next_observation, done, step):
 
         # print('obs ', observation, '  -  act ', action, '  -  check ', observation == next_observation)
 
-        q = reward + self.gamma * np.max(self.Q(next_observation)) 
+        q = reward + self.gamma * np.max(self.Q(next_observation))
         # q = reward + self.gamma * np.dot( self.Q(next_observation), self.policy(next_observation) )
-        # print(q)
+        # print(q, reward, np.max(self.Q(next_observation)))
 
-        mu_prior = self.prior_mean(observation, action)
-       
-        _, std_dev_1 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
+        Qa_hat = self.Qa(observation, action)
+
+        _, std_dev_1 = self.GPR[action].predict(observation.reshape(1, -1), return_std=True)
         # print('std1', std_dev_1[0])
-        if std_dev_1[0]**2  > self.tolerance2:
-            # print('FIRST GP UPDATE')
-            self.GPR[action].fit(observation.reshape(1,-1), np.array([q - mu_prior]))
-        # if np.abs(mean_1 - q) > std_dev_1bv_j['mu']:
-            # print('here')
-            # self.GPR[action].fit(observation.reshape(1,-1), np.array([q]))
+        if std_dev_1[0] ** 2 > self.tolerance2:
+            mu_prior = Qa_hat if bool(self.BVset[action]) else self.Rmax / (1 - self.gamma)
+            self.GPR[action].fit(observation.reshape(1, -1), np.array([q - mu_prior]))
 
-        mean_2, std_dev_2 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
+        mean_2, std_dev_2 = self.GPR[action].predict(observation.reshape(1, -1), return_std=True)
         std_dev_2[0] -= std_dev_2[0]
-        # mean_2[0] += mu_prior
+        # mean_2[0] += Qa_hat
         # print('Qa: ', self.Qa(observation, action), '   mean: ', mean_2[0])
         # print('std2', std_dev)
-        # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
-        # print(std_dev_1[0]**2, self.tolerance2, std_dev_2[0]**2, std_dev_1[0]**2 > self.tolerance2, self.tolerance2 >= std_dev_2[0]**2, self.Qa(observation, action) - mean_2[0] > 2*self.eps_1)
-        # print(self.Qa(observation, action) - mean_2[0], 2*self.eps_1)
-        if std_dev_1[0]**2 > self.tolerance2 >= std_dev_2[0]**2: #and self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
-            if self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
+        # # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
+        # print(std_dev_1[0] ** 2, self.tolerance2, std_dev_2[0] ** 2, std_dev_1[0] ** 2 > self.tolerance2,
+        #       self.tolerance2 >= std_dev_2[0] ** 2, self.Qa(observation, action) - mean_2[0] > 2 * self.eps_1)
+        # print('Qa - mu = ', (self.Qa(observation, action)) - mean_2[0], 'Qa = ', (self.Qa(observation, action)),
+        #       'mu = ', mean_2[0], '2eps_1 = ', 2 * self.eps_1)
+        if std_dev_1[0] ** 2 > self.tolerance2 >= std_dev_2[0] ** 2:
+            if Qa_hat - mean_2[0] > 2 * self.eps_1:
                 # print('SECOND GP UPDATE')
-                self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
+                self.updateBasisVectorSet(mean_2[0] + self.eps_1 + Qa_hat, observation, action)
                 # print('woy')
-                # self.RBF_kernel_component = RBF(length_scale=self.length_scale)
-                # self.kernel = self.RBF_kernel_component + WhiteKernel(noise_level=self.noise_level)
-                # self.GP_kernel = self.kernel
+                self.reset_kernel()
                 self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
+
+    # def learn(self, observation, action, reward, next_observation, done, step):
+    #
+    #     # print('obs ', observation, '  -  act ', action, '  -  check ', observation == next_observation)
+    #
+    #     q = reward + self.gamma * np.max(self.Q(next_observation))
+    #     # q = reward + self.gamma * np.dot( self.Q(next_observation), self.policy(next_observation) )
+    #     # print(q)
+    #
+    #     mu_prior = self.prior_mean(observation, action)
+    #
+    #     _, std_dev_1 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
+    #     # print('std1', std_dev_1[0])
+    #     if std_dev_1[0]**2  > self.tolerance2:
+    #         # print('FIRST GP UPDATE')
+    #         self.GPR[action].fit(observation.reshape(1,-1), np.array([q - mu_prior]))
+    #     # if np.abs(mean_1 - q) > std_dev_1bv_j['mu']:
+    #         # print('here')
+    #         # self.GPR[action].fit(observation.reshape(1,-1), np.array([q]))
+    #
+    #     mean_2, std_dev_2 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
+    #     std_dev_2[0] -= std_dev_2[0]
+    #     # mean_2[0] += mu_prior
+    #     # print('Qa: ', self.Qa(observation, action), '   mean: ', mean_2[0])
+    #     # print('std2', std_dev)
+    #     # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
+    #     # print(std_dev_1[0]**2, self.tolerance2, std_dev_2[0]**2, std_dev_1[0]**2 > self.tolerance2, self.tolerance2 >= std_dev_2[0]**2, self.Qa(observation, action) - mean_2[0] > 2*self.eps_1)
+    #     # print(self.Qa(observation, action) - mean_2[0], 2*self.eps_1)
+    #     if std_dev_1[0]**2 > self.tolerance2 >= std_dev_2[0]**2: #and self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
+    #         if self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
+    #             # print('SECOND GP UPDATE')
+    #             self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
+    #             # print('woy')
+    #             # self.RBF_kernel_component = RBF(length_scale=self.length_scale)
+    #             # self.kernel = self.RBF_kernel_component + WhiteKernel(noise_level=self.noise_level)
+    #             # self.GP_kernel = self.kernel
+    #             self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
 
 # -------------
 

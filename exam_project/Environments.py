@@ -1187,6 +1187,8 @@ class DGPQEnvironment:
 
                 np.save(self.current_directory +'/trials/performance/{}/rewards_up_to_{}_{}_{}'.format(self.name_instance_directory,episode, self.n_trackers,self.instance), self.reward_trajectories)
                 np.save(self.current_directory +'/trials/performance/{}/time_up_to_{}_{}_{}'.format(self.name_instance_directory,episode, self.n_trackers,self.instance), self.time_trajectories)
+                np.save(self.current_directory +'/trials/performance/{}/BV_{}_{}_{}'.format(self.name_instance_directory,episode, self.n_trackers,self.instance), getattr(self.trackers_network[0],'BVset'))
+
 
             elif (time > 75 and episode > n_episodes-n_episodes//20):
                 long_episodes[episode] = deepcopy(episode_dict)
