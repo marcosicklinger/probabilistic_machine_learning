@@ -58,9 +58,4 @@ q = ax.quiver(n_grid*X-.5, n_grid*Y-.5, U, V, color="black")
 divider = make_axes_locatable(ax)
 cax = divider.append_axes("right", size="5%", pad=0.05)
 plt.colorbar(im, cax=cax)
-
-
-print(Qopt)
-print(policy)
-
 plt.show()
