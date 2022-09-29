@@ -23,28 +23,6 @@ def distanceFromNearestBoundaries(position, low, high):
     distances = np.array([x_smaller_distance, y_smaller_distance])
 
     return distances
-    
-
-
-class FeatureEmbedding:
-
-    def __init__(self):
-
-    #     self.observation = None
-        pass
-
-    # def updateObservation(self, observation):
-
-    #     self.observation = observation
-
-
-
-    def __call__(self, t):
-
-        mean_feature_embedding = T.math.reduce_mean(t, axis=0)
-        # if self.observation is not None:
-        #     return T.concat( [mean_feature_embedding, self.observation], axis=0 )
-        return T.stack([mean_feature_embedding])
 
 
 
@@ -75,16 +53,16 @@ class DiscreteActionSpace:
 
         
 def SADistance(s1, a1, s2, a2):
-    # print(s1, s2)
     s1_s2_L1Distance = np.linalg.norm(s1-s2, ord=1)
-    # print(s1_s2_L1Distance)
-    # a1_a2_L1Distance = 1 if a1 != a2 else 0
-    SAL1distance = s1_s2_L1Distance #+ a1_a2_L1Distance
-
+    SAL1distance = s1_s2_L1Distance 
     return SAL1distance
+
+
 
 def CoverigNumber(domain_dimensions, ball_radius):
     return np.ceil((domain_dimensions[1][0]-domain_dimensions[0][0])/(ball_radius*2))*np.ceil((domain_dimensions[1][1]-domain_dimensions[0][1])/(ball_radius*2))
+
+
 
 def CreateDirectories():
     current_directory = os.getcwd()

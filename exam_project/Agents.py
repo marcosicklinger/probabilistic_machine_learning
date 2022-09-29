@@ -23,11 +23,6 @@ class Tracker:
 
     # ACTIONS
     # -------
-    # ROTATION_P = np.pi/6
-    # ROTATION_N = -np.pi/6
-    # NO_ROTATION = 0
-    # ROT_ACT = [ROTATION_N, NO_ROTATION, ROTATION_P]
-    # ACTIONS = np.array(ROT_ACT)
     STEP_SIZE = 0.1
     MOVEMENTS = [np.array([-STEP_SIZE,0]), np.array([STEP_SIZE,0]), np.array([0,-STEP_SIZE]), np.array([0,STEP_SIZE])]
     ACTIONS = np.array(MOVEMENTS)
@@ -35,62 +30,30 @@ class Tracker:
 
     # SWARMAGENT PROPERTIES
     # ------------------
-    SPEED = 3
     DETECTION_RANGE = 30
-    DETECTION_PROBABILITY = lambda distance: 1 if distance < Tracker.DETECTION_RANGE else 0 # lambda distance: np.exp( - 0.1 * (distance / Tracker.DETECTION_RANGE)**2 ) if distance < Tracker.DETECTION_RANGE else 0
+    DETECTION_PROBABILITY = lambda distance: 1 if distance < Tracker.DETECTION_RANGE else 0
     INTERACTION_RANGE = 60
     # ------------------
-
-    # @classmethod
-    # def resetID(cls):
-    #     cls.ID = itertools.count()
-
-    @classmethod
-    def noiseKinematicMeasure(cls, accuracy):
-
-            mean = (0, 0)
-            cov = [[accuracy, 0], [0, accuracy]]
-            return np.random.multivariate_normal(mean, cov)
-
-
-
-    @classmethod
-    def noiseOrientationMeasure(cls, importance):
-
-            return np.random.normal(-np.pi*(importance*.01), np.pi*(importance*.01), 1)[0]
-
-
-
-    @classmethod
-    def noiseDistanceMeasure(cls, importance, distance):
-            return np.random.normal(0, distance*(importance*.01), 1)[0]
 
 
 
     def __init__(self, 
-                lr_pars:"learning parameters dictionary",
+                lr_pars,
                 state_space_size,
-                init_position=None,
-                init_speed=None,
-                init_orientation=None,
-                memoryless=True
+                init_position=None
     ):
 
         self.state_space_size = state_space_size
-
         self.position = init_position
-        self.speed = init_speed
-        self.orientation = init_orientation
         self.actions = DiscreteActionSpace( len(Tracker.ACTIONS) )
         self.neighborhood = []
         self.observation = np.empty((len(self.state_space_size),))
-        self.memoryless = memoryless
-        if not self.memoryless: 
-            self.memory = deque(maxlen=2000)
-            self.replay_size = 32
 
         self.lr_pars = deepcopy(lr_pars)
         self.Q = np.zeros((*self.state_space_size, self.actions.n_actions))
+
+
+
     def seesTarget(self, distance):
 
         sees_target = np.random.choice([0, 1], 1, p=[1-Tracker.DETECTION_PROBABILITY(distance), Tracker.DETECTION_PROBABILITY(distance)])
@@ -99,37 +62,12 @@ class Tracker:
 
 
 
-    def observeNeighborhood(self, new_neighbors):
+    def policy(self, observation):
 
-        del self.neighborhood
-        self.neighborhood = new_neighbors
-
-
-
-    def observeLocalProperties(self, local_observation):
-
-        del self.local_observation
-        self.local_observation = local_observation
-        return np.append(np.array( [self.position, self.speed] ).flatten(), self.orientation)
-
-
-    
-    def remember(self, experience):
-        assert not self.memoryless, "memoryless trackers cannot remember"
-
-        self.memory.append(experience)
-
-
-
-    def policy(self, observation:"state or observation"):
-
-        '''computes the agent's policy as the average of Qa and Qb'''
-        best_actions = ( self.q_hat.predict(observation) == np.max( self.q_hat.predict(observation) ) )
-        # best_actions = self.actions.getModelBestActions( self.Q[ (*tuple(observation), ) ] )
+        best_actions = self.actions.getModelBestActions( self.Q[ (*tuple(observation), ) ] )
+        # e-greedy policy
         policy = self.lr_pars['eps'] * np.ones( self.actions.n_actions ) / self.actions.n_actions + \
                 (1 - self.lr_pars['eps']) * best_actions / np.sum(best_actions)
-        # print(best_actions.shape)
-        # print(policy.shape)
         return policy
 
 
@@ -137,29 +75,19 @@ class Tracker:
     def act(self, observation:"state or observation"):
 
         return self.actions.sample(self.policy(observation))
-        # return np.random.choice( range(Tracker.ACTIONS.shape[0]), 1, p=self.policy(z) )
 
 
 
-    def expectedSarsaStep(self, observation, action, reward, next_observation, done, step):
+    def learn(self, observation, action, reward, next_observation, done, step):
 
         dQ = reward - self.Q[ (*observation, action) ]
-        if not done: dQ += self.lr_pars['gamma'] * ( np.dot(self.policy(next_observation), self.Q[ (*next_observation, ) ]) ) 
+        if not done: dQ += self.lr_pars['gamma'] * np.max(self.Q[ (*next_observation, )])
        
         if step < self.lr_pars['start_update']:
             self.Q[ (*observation, action) ] += self.lr_pars['alpha_0']*dQ
         else:
             self.Q[ (*observation, action) ] += self.lr_pars['alpha']*dQ
 
-
-
-    def memoryReplayStep(self, replay_size):
-
-        memory_set = random.sample(self.memory, replay_size)
-
-        for observation, action, reward, next_observation, done in memory_set:
-            self.expectedSarsaStep(observation, action, reward, next_observation, done)
-        
 
 
 # -------------
@@ -173,11 +101,6 @@ class DGPQTracker:
 
     # ACTIONS
     # -------
-    # ROTATION_P = np.pi/6
-    # ROTATION_N = -np.pi/6
-    # NO_ROTATION = 0
-    # ROT_ACT = [ROTATION_N, NO_ROTATION, ROTATION_P]
-    # ACTIONS = np.array(ROT_ACT)
     STEP_SIZE = 0.1
     MOVEMENTS = [np.array([-STEP_SIZE,0]), np.array([STEP_SIZE,0]), np.array([0,-STEP_SIZE]), np.array([0,STEP_SIZE])]
     ACTIONS = np.array(MOVEMENTS)
@@ -185,7 +108,6 @@ class DGPQTracker:
 
     # SWARMAGENT PROPERTIES
     # ------------------
-    SPEED = 3
     DETECTION_RANGE = 0
     DETECTION_PROBABILITY = lambda distance: 1 if distance < Tracker.DETECTION_RANGE else 0 # lambda distance: np.exp( - 0.1 * (distance / Tracker.DETECTION_RANGE)**2 ) if distance < Tracker.DETECTION_RANGE else 0
     INTERACTION_RANGE = 0
@@ -229,16 +151,30 @@ class DGPQTracker:
         self.tolerance2 = self.tolerance2_numerator/( 9*(self.Rmax**2)*np.log( (6/self.delta)*self.actions.n_actions*self.Ns*(1 + self.K)) )
         self.exploration = self.init_lr_pars['exploration']
         self.update_rate = 1.
-        self.Qinit = 0
-        self.length_scale = self.init_lr_pars['RBF_length_scale']
+        self.length_scale = self.init_lr_pars['length_scale']
         self.BVset = [[] for _ in range(self.actions.n_actions)]
-        self.frozen_BVset = deepcopy(self.BVset)
         self.kernel_name = self.init_lr_pars['kernel']
         self.kernel_component = None
         self.GP_kernel = None
         self.reset_kernel()
         self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
-        # self.prior_mean = lambda s, a: self.Qa(s, a) 
+
+
+
+    def reset_kernel(self):
+        if self.kernel_name == 'Matern0.5':
+            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
+        if self.kernel_name == 'Matern1.5':
+            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
+        if self.kernel_name == 'Matern2.5':
+            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
+        if self.kernel_name == 'RBF':
+            self.kernel_component = RBF(length_scale=self.length_scale)
+        if self.kernel_name == 'RationalQuadratic1':
+            self.kernel_component =  RationalQuadratic(length_scale=self.length_scale, alpha=1)
+        if self.kernel_name == 'RationalQuadratic2.25':
+            self.kernel_component =  RationalQuadratic(length_scale=self.length_scale, alpha=2.25)
+        self.GP_kernel = self.kernel_component + WhiteKernel(noise_level=self.noise_level)
 
 
     
@@ -261,8 +197,6 @@ class DGPQTracker:
 
         if not bool(self.BVset[action]): 
             return 0
-        # print(len(self.BVset[action]))
-        # print(self.approximator(observation, action))
         return self.approximator(observation, action)
 
 
@@ -270,149 +204,56 @@ class DGPQTracker:
     def Q(self, observation):
 
         Q = np.empty(self.actions.n_actions)
-
         for action in self.actions.action_indeces:
             Q[action] = self.Qa(observation, action)
-        
         return Q
 
 
 
     def updateBasisVectorSet(self, mu, observation, action):
 
-        # self.BVset[action] += [{'mu': mu, 's': observation}]
-        len_before = len(self.BVset[action])
-        # print(len_before, end='\r')
-
         self.BVset[action] += [{'mu': mu, 's': observation}]
         if bool(self.BVset[action]):
             reduntant_basis_vectors = []
-            for j, bv_j in reversed(list(enumerate(self.BVset[action]))):
-                if j != len(self.BVset[action]) - 1:
-                    if mu + self.LQ * SADistance(observation, action, bv_j['s'], action) <= bv_j['mu']: #bv_j['mu']:
-                    # if SADistance(observation, action, bv_j['s'], action) < 0.2:
-                    #     if mu <= bv_j['mu']:
-                        # print( SADistance(observation, action, bv_j['s'], action))
-                            # reduntant_basis_vectors += [j]
-                            del self.BVset[action][j]
-            # print(bool(reduntant_basis_vectors), len(reduntant_basis_vectors))
-            # for idx in sorted(reduntant_basis_vectors, reverse=True):
-            #     del self.BVset[action][idx]
+            for a in self.actions.action_indeces:
+                for j, bv_j in reversed(list(enumerate(self.BVset[a]))):
+                    if j != len(self.BVset[a]) - 1:
+                        if mu + self.LQ * SADistance(observation, action, bv_j['s'], a) <= self.GPR[a].predict(bv_j['s'].reshape(1,-1))[0]:#bv_j['mu']: 
+                                del self.BVset[a][j]
 
-        # self.BVset[action] += [{'mu': mu, 's': observation}]
-
-        # if len(self.BVset[action]) > 500:
-        #     del self.BVset[action][0]
-        # print(len(self.BVset[action]))
 
 
     def policy(self, observation:"state or observation"):
 
         '''computes the agent's policy as the average of Qa and Qb'''
         best_actions = self.actions.getModelBestActions( self.Q(observation) ) 
-        # best_actions = self.actions.getModelBestActions( np.array( [self.GPR[action].predict(observation.reshape(1, -1), return_std=False)[0]
-        #                                                             for action in range(self.actions.n_actions)] ) )
-        # policy = self.exploration * np.ones( self.actions.n_actions ) / self.actions.n_actions + (1 - self.exploration) * best_actions / np.sum(best_actions)
         policy = best_actions / np.sum(best_actions)
-        # # print(best_actions.shape)
-        # # print(policy.shape)
         return policy
 
-    def reset_kernel(self):
-        if self.kernel_name == 'Matern0.5':
-            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
-        if self.kernel_name == 'Matern1.5':
-            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
-        if self.kernel_name == 'Matern2.5':
-            self.kernel_component = Matern(length_scale=self.length_scale, nu=1.5)
-        if self.kernel_name == 'RBF':
-            self.kernel_component = RBF(length_scale=self.length_scale)
-        if self.kernel_name == ' RationalQuadratic1':
-            self.kernel_component =  RationalQuadratic(length_scale=self.length_scale, alpha=1)
-        if self.kernel_name == ' RationalQuadratic2':
-            self.kernel_component =  RationalQuadratic(length_scale=self.length_scale, alpha=2)
-        # self.kernel_component = RBF(length_scale=self.length_scale)
-        # self.RBF_kernel_component.set_params(**{'length_scale_bounds': (1e-15, 100000.0)})
-        self.GP_kernel = self.kernel_component + WhiteKernel(noise_level=self.noise_level)
 
 
     def act(self, observation:"state or observation"):
 
         return self.actions.sample(self.policy(observation))
-        # return np.random.choice( range(Tracker.ACTIONS.shape[0]), 1, p=self.policy(z) )
 
     def learn(self, observation, action, reward, next_observation, done, step):
 
-        # print('obs ', observation, '  -  act ', action, '  -  check ', observation == next_observation)
-
         q = reward + self.gamma * np.max(self.Q(next_observation))
-        # q = reward + self.gamma * np.dot( self.Q(next_observation), self.policy(next_observation) )
-        # print(q, reward, np.max(self.Q(next_observation)))
-
         Qa_hat = self.Qa(observation, action)
 
         _, std_dev_1 = self.GPR[action].predict(observation.reshape(1, -1), return_std=True)
-        # print('std1', std_dev_1[0])
         if std_dev_1[0] ** 2 > self.tolerance2:
             mu_prior = Qa_hat if bool(self.BVset[action]) else self.Rmax / (1 - self.gamma)
             self.GPR[action].fit(observation.reshape(1, -1), np.array([q - mu_prior]))
 
         mean_2, std_dev_2 = self.GPR[action].predict(observation.reshape(1, -1), return_std=True)
-        std_dev_2[0] -= std_dev_2[0]
-        # mean_2[0] += Qa_hat
-        # print('Qa: ', self.Qa(observation, action), '   mean: ', mean_2[0])
-        # print('std2', std_dev)
-        # # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
-        # print(std_dev_1[0] ** 2, self.tolerance2, std_dev_2[0] ** 2, std_dev_1[0] ** 2 > self.tolerance2,
-        #       self.tolerance2 >= std_dev_2[0] ** 2, self.Qa(observation, action) - mean_2[0] > 2 * self.eps_1)
-        # print('Qa - mu = ', (self.Qa(observation, action)) - mean_2[0], 'Qa = ', (self.Qa(observation, action)),
-        #       'mu = ', mean_2[0], '2eps_1 = ', 2 * self.eps_1)
+        # std_dev_2[0] -= std_dev_2[0]
         if std_dev_1[0] ** 2 > self.tolerance2 >= std_dev_2[0] ** 2:
             if Qa_hat - mean_2[0] > 2 * self.eps_1:
-                # print('SECOND GP UPDATE')
                 self.updateBasisVectorSet(mean_2[0] + self.eps_1 + Qa_hat, observation, action)
-                # print('woy')
                 self.reset_kernel()
                 self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
 
-    # def learn(self, observation, action, reward, next_observation, done, step):
-    #
-    #     # print('obs ', observation, '  -  act ', action, '  -  check ', observation == next_observation)
-    #
-    #     q = reward + self.gamma * np.max(self.Q(next_observation))
-    #     # q = reward + self.gamma * np.dot( self.Q(next_observation), self.policy(next_observation) )
-    #     # print(q)
-    #
-    #     mu_prior = self.prior_mean(observation, action)
-    #
-    #     _, std_dev_1 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
-    #     # print('std1', std_dev_1[0])
-    #     if std_dev_1[0]**2  > self.tolerance2:
-    #         # print('FIRST GP UPDATE')
-    #         self.GPR[action].fit(observation.reshape(1,-1), np.array([q - mu_prior]))
-    #     # if np.abs(mean_1 - q) > std_dev_1bv_j['mu']:
-    #         # print('here')
-    #         # self.GPR[action].fit(observation.reshape(1,-1), np.array([q]))
-    #
-    #     mean_2, std_dev_2 = self.GPR[action].predict(observation.reshape(1,-1), return_std=True)
-    #     std_dev_2[0] -= std_dev_2[0]
-    #     # mean_2[0] += mu_prior
-    #     # print('Qa: ', self.Qa(observation, action), '   mean: ', mean_2[0])
-    #     # print('std2', std_dev)
-    #     # print(std_dev_1[0]**2  > self.tolerance >= std_dev_2[0]**2, np.abs(self.Qa(observation, action) - mean_2[0]) > 2*self.eps_1)
-    #     # print(std_dev_1[0]**2, self.tolerance2, std_dev_2[0]**2, std_dev_1[0]**2 > self.tolerance2, self.tolerance2 >= std_dev_2[0]**2, self.Qa(observation, action) - mean_2[0] > 2*self.eps_1)
-    #     # print(self.Qa(observation, action) - mean_2[0], 2*self.eps_1)
-    #     if std_dev_1[0]**2 > self.tolerance2 >= std_dev_2[0]**2: #and self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
-    #         if self.Qa(observation, action) - mean_2[0] > 2*self.eps_1:
-    #             # print('SECOND GP UPDATE')
-    #             self.updateBasisVectorSet(mean_2[0] + self.eps_1, observation, action)
-    #             # print('woy')
-    #             # self.RBF_kernel_component = RBF(length_scale=self.length_scale)
-    #             # self.kernel = self.RBF_kernel_component + WhiteKernel(noise_level=self.noise_level)
-    #             # self.GP_kernel = self.kernel
-    #             self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
-
-# -------------
 
 # ------------------
 # DUMMY TARGET CLASS

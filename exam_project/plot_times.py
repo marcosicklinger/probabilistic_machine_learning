@@ -17,89 +17,52 @@ from Agents import *
 from WorldFeatures import *
 import itertools
 from numpy import linalg as alg
-import tensorflow as T
 import os
 from matplotlib import animation
 from matplotlib.animation import PillowWriter 
 import os.path
 
-# episode = input("Enter episode: ")
-episode_1 = 99999
-episode_2 = 79999
-n_trials = 7
 n_agents = 1
+periods = 150
 
-
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_single.npy'.format(episode_2), allow_pickle=True)]
-
-lr_pars = {'gamma': .925, 'LQ': 9, 'epsilon': 1, 'exploration': 0.1, 'RBF_length_scale': 0.04, 'start_update': 1e7,'delta': 0.9999, 'kernel':'RBF'}
-current_directory = os.getcwd()
-name_instance_directory = str(lr_pars).replace("'", '').replace(" ", '').replace("{", '').replace("}", '').replace(",", '_').replace(":", '_').replace(".", '_')
-time = np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory,1000, n_agents, 1), allow_pickle=True)
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(5000, lr_pars_1), allow_pickle=True)]
-for i in [3,4,5,7,8,11,12]:
-    time += np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory,1000, n_agents, i), allow_pickle=True)
-# lr_pars_2 = {'a': 0.005, 'expa': 0.9, 'eps': 0.1, 'expe': 1.05, 'p_angle': 8}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_double_{}.npy'.format(episode_2, lr_pars_2), allow_pickle=True)]
-# lr_pars_3 = {'a': 0.002, 'expa': 0.8, 'eps': 0.05, 'expe': 0.8, 'p_angle': 8}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_double_{}.npy'.format(episode_2, lr_pars_3), allow_pickle=True)]
-# lr_pars_4 = {'a': 0.0075, 'expa': 0.9999, 'eps': 0.05, 'expe': 1.25, 'p_angle': 12}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_doubleNoTDist_{}.npy'.format(episode_2, lr_pars_4), allow_pickle=True)]
-# lr_pars_5 = {'a': 0.001, 'expa': 0.99, 'eps': 0.025, 'expe': 1, 'p_angle': 12}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_doubleNoTDist_{}.npy'.format(episode_2, lr_pars_5), allow_pickle=True)]
-# lr_pars_6 = {'a': 0.0015, 'expa': 0.99, 'eps': 0.03, 'expe': 1, 'p_angle': 16}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_doubleNoTDist_{}.npy'.format(episode_2, lr_pars_6), allow_pickle=True)]
-# lr_pars_7 = {'a': 0.002, 'expa': 0.97, 'eps': 0.033, 'expe': 0.99, 'p_angle': 20}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_doubleNoTDist_{}.npy'.format(episode_2, lr_pars_7), allow_pickle=True)]
-# lr_pars_8 = {'a': 0.01, 'expa': 0.99, 'eps': 0.05, 'expe': 1.25, 'p_angle': 12}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(episode_2, lr_pars_8), allow_pickle=True)]
-# lr_pars_9 = {'a': 0.005, 'expa': 0.99, 'eps': 0.05, 'expe': 1.15, 'p_angle': 16}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_singleNoTDist_{}.npy'.format(episode_2, lr_pars_9), allow_pickle=True)]
-# lr_pars_10 = {'a': 0.003, 'expa': 0.999, 'eps': 0.025, 'expe': 1.05, 'p_angle': 12}
-# time += [np.load('/home/marco/probabilistic_machine_learning/exam_project/trials/performance/time_up_to_{}_doubleNoTDistMDP_{}.npy'.format(episode_2, lr_pars_10), allow_pickle=True)]
-time = time/14
-print(time)
-periods = 50
 
 fig, ax = plt.subplots(figsize=(10,10))
 plt.suptitle('Duration comparison (moving average over {} episodes)'.format(periods))
 ax.set_xlabel('episode')
 ax.set_ylabel('time')
 
-i = 0
-time_array = np.array(time[i])
-print(time_array)
-long_episodes = time_array[time_array > 200]
-print('number of long episodes: {}'.format(len(long_episodes)))
-average_time = moving_average(time, periods=periods, mode='valid')
-ax.plot(range(len(average_time)), average_time, label='{} agents'.format(n_agents))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agents {}'.format(2, lr_pars_2))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agents {}'.format(2, lr_pars_3))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agents {}'.format(2, lr_pars_4))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agents, angle aggregation {}'.format(2, lr_pars_5['p_angle']))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agents, angle aggregation {}'.format(2, lr_pars_6['p_angle']))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agent, angle aggregation {}'.format(2, lr_pars_7['p_angle']))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agent, angle aggregation {}'.format(1, lr_pars_8['p_angle']))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agent, angle aggregation {}'.format(1, lr_pars_9['p_angle']))
-# i += 1
-# average_time = moving_average(time[i], periods=periods, mode='valid')
-# ax.plot(range(len(average_time)), average_time, label='{} agents, angle aggregation {}, MDP'.format(1, lr_pars_10['p_angle']))
+lr_pars_discrete = {'gamma': .9, 'alpha_0': .01, 'alpha': .01, 'alpha_min': 1e-7, 'exp_alpha': 0.9999, 'eps_0': .05, 'eps': .05, 'eps_min': 1e-6, 'exp_eps': 1.5, 'start_update': 5e4, 'cut': 1e50}
+current_directory = os.getcwd()
+name_instance_directory = str(lr_pars_discrete).replace("'", '').replace(" ", '').replace("{", '').replace("}", '').replace(",", '_').replace(":", '_').replace(".", '_')
+time_discrete = np.zeros(5001)
+instances = [5]
+for i in instances:
+    time_discrete += np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}_discrete.npy'.format(name_instance_directory,5000, n_agents, i), allow_pickle=True)
+time_discrete = time_discrete/len(instances)
+average_time_discrete = moving_average(time_discrete, periods=periods, mode='valid')
+ax.plot(range(len(average_time_discrete)), average_time_discrete, label=r'$\epsilon$-greedy tabular')
+
+lr_pars = {'gamma': .925, 'LQ': 9, 'epsilon': 1, 'exploration': 0.1, 'RBF_length_scale': 0.05, 'delta':0.9999, 'kernel': 'RationalQuadratic2.3', 'start_update': 1e7}
+current_directory = os.getcwd()
+name_instance_directory = str(lr_pars).replace("'", '').replace(" ", '').replace("{", '').replace("}", '').replace(",", '_').replace(":", '_').replace(".", '_')
+time1 = np.zeros(5001)
+instances = [13]
+for i in instances:
+    time1 += np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory,5000, n_agents, i), allow_pickle=True)
+time1 = time1/len(instances)
+average_time1 = moving_average(time1, periods=periods, mode='valid')
+ax.plot(range(len(average_time1)), average_time1, label=r'rational quadratic ($\alpha$=2.3, l=1.0)')
+
+lr_pars = {'gamma': .925, 'LQ': 9, 'epsilon': 1, 'exploration': 0.1, 'RBF_length_scale': 0.04, 'delta':0.9999, 'kernel': 'RationalQuadratic2.4', 'start_update': 1e7}
+current_directory = os.getcwd()
+name_instance_directory = str(lr_pars).replace("'", '').replace(" ", '').replace("{", '').replace("}", '').replace(",", '_').replace(":", '_').replace(".", '_') 
+time2 = np.zeros(5001)
+instances = [12]
+for i in instances:
+    time2 += np.load(current_directory + '/trials/performance/{}/time_up_to_{}_{}_{}.npy'.format(name_instance_directory, 5000, n_agents, i), allow_pickle=True)
+time2 = time2/len(instances)
+average_time2 = moving_average(time2, periods=periods, mode='valid')
+ax.plot(range(len(average_time2)), average_time2, label=r'RBF (l=0.05)')
 
 ax.legend()
 plt.show()
