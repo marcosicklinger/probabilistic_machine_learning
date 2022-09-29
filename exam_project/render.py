@@ -65,11 +65,9 @@ def motion(t):
         target_trail_y = target_path_y[-7:]
         ax.plot( tracker_trail_x, tracker_trail_y, color= 'red', linestyle='--', alpha=0.33 )
         marker = matplotlib.markers.MarkerStyle('o')
-        marker._transform = marker.get_transform().rotate_deg(THETA_trackers[n][t] * 180/np.pi)
         ax.scatter(X_trackers_coords[n][t], Y_trackers_coords[n][t], color='red', marker=marker, s=200, linewidth=3)
 
     ax.text(X_target_coords[t]+0.025, Y_target_coords[t]+0.025, 'G', color='k',  ha='center', va='center', fontsize=30)
-    ax.legend( loc='lower center', bbox_to_anchor=(0.5, -3) )
     ax.set_title('Episode {} \nStep = '.format(episode) + str(time[t]))
     return ax
 
