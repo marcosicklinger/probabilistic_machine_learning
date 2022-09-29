@@ -255,18 +255,3 @@ class DGPQTracker:
                 self.GPR = [GPR(self.GP_kernel, normalize_y=True) for i in range(self.actions.n_actions)]
 
 
-# ------------------
-# DUMMY TARGET CLASS
-# ------------------
-class DummyTarget:
-
-    def __init__(self,
-                init_position=None,
-                init_speed=None
-    ):
-
-        self.position = init_position
-        self.speed = init_speed
-
-# ------------------
-
